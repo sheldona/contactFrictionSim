@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <Discregrid/All>
+#include <memory>
 
 // List of geometry type ids.
 enum eGeometryType { kSphere, kBox, kPlane, kSDF };

@@ -4,10 +4,11 @@ project(contactFrictionSim)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenGL REQUIRED)
+find_package(OpenMP REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Xml)
  
 set(qglviewer_HEADERS 3rdParty/QGLViewer/camera.h
@@ -105,7 +106,7 @@ add_executable (contactFrictionSim main.cpp MainWindow.h MainWindow.cpp
           ${qglviewer_HEADERS} ${qglviewer_SOURCE} ${qglviewer_FORMS} )
 
 add_compile_definitions(QGLVIEWER_STATIC)
-target_link_libraries(contactFrictionSim OpenGL::GL Qt5::Core Qt5::Widgets Qt5::Xml)
+target_link_libraries(contactFrictionSim OpenGL::GL OpenMP::OpenMP_CXX Qt5::Core Qt5::Widgets Qt5::Xml)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 3rdParty/QGLViewer 3rdParty/Eigen3/include/eigen3 3rdParty/Discregrid/include ${COMMON_INCLUDES})
 
 # Setup source code groups
@@ -131,5 +132,11 @@ source_group(src/util FILES ${util_SOURCE})
 source_group(include/util FILES ${util_HEADERS})
 
 if(MSVC) 
-  set_property(TARGET contactFrictionSim PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+	set_property(TARGET contactFrictionSim PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+	
+	# Discregrid compilation flags
+	#
+  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4250")
 endif()

@@ -75,7 +75,7 @@ namespace
 
     static RigidBody* findClosestBody(const std::vector<RigidBody*>& bodies, const Eigen::Vector3f& p, float& minDist, Eigen::Vector3f& pout)
     {
-        minDist = FLT_MAX;
+        minDist = std::numeric_limits<float>::max();
         RigidBody* closestBody = nullptr;
         for(RigidBody* b : bodies)
         {
@@ -105,7 +105,7 @@ namespace
         const auto vec = camera->pointUnderPixel(mouseP, found);
         if( found )
         {
-            float minDist = FLT_MAX;
+            float minDist = std::numeric_limits<float>::max();
             pick.body = findClosestBody(bodies, Eigen::Vector3f(vec[0], vec[1], vec[2]), minDist, pick.plocal);
             if( minDist < 0.1f )
             {

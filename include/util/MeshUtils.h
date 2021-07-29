@@ -8,7 +8,7 @@
 // Type for storing a tuple of vertex indices
 struct MeshCollisionData
 {
-    MeshCollisionData() : i0(0), i1(0), i2(0), a(0.0f), b(0.0f), c(0.0f), p(), distance(FLT_MAX) {}
+    MeshCollisionData() : i0(0), i1(0), i2(0), a(0.0f), b(0.0f), c(0.0f), p(), distance(std::numeric_limits<float>::max()) {}
 
     unsigned int i0, i1, i2;    ///< Vertex indices
     float a, b, c;              ///< Barycentric coordinates
@@ -221,7 +221,7 @@ static inline void barycentric(const Eigen::Vector3f& p, const Eigen::Vector3f& 
 //
 static inline bool barycentricClosestPoint(const Mesh& _mesh, const Eigen::Vector3f& _p, MeshCollisionData& _meshData, const Eigen::Vector3f* nfilter)
 {
-    float minDistance = FLT_MAX;
+    float minDistance = std::numeric_limits<float>::max();
     _meshData.a = _meshData.b = _meshData.c = 0.0f;
     const unsigned int numVertices = _mesh.vertices.size();
     for(unsigned int i = 0; i < numVertices; i += 3)
@@ -255,5 +255,5 @@ static inline bool barycentricClosestPoint(const Mesh& _mesh, const Eigen::Vecto
         }
     }
 
-    return (minDistance < FLT_MAX);
+    return (minDistance < std::numeric_limits<float>::max());
 }

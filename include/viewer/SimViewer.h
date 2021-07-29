@@ -29,7 +29,7 @@ public:
 
     struct PickingData
     {
-        PickingData() : depth(FLT_MAX), plocal(), body(nullptr) {}
+        PickingData() : depth(std::numeric_limits<float>::max()), plocal(), body(nullptr) {}
         float depth;
         Eigen::Vector3f plocal;
         RigidBody* body;
