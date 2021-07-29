@@ -1,0 +1,56 @@
+#pragma once
+
+#include <Eigen/Dense>
+#include <vector>
+
+class Contact;
+class RigidBody;
+class RigidBodySystem;
+
+//
+// The main collision detection class,
+// it will test the geometries of each pair of rigid bodies
+// and populate an array with contacts.
+//
+class CollisionDetect
+{
+public:
+
+    CollisionDetect(RigidBodySystem* rigidBodySystem);
+
+    void detectCollisions();
+
+    void clear();
+
+    // Compute the Jacobians for contacts
+    void computeContactJacobians();
+
+    const std::vector<Contact*>& getContacts() const { return m_contacts; }
+
+    std::vector<Contact*>& getContacts() { return m_contacts; }
+
+private:
+
+    // Sphere-sphere collision test.
+    // Assumes that both @a body0 and @a body1 have a sphere collision geometry.
+    //
+    void collisionDetectSphereSphere(RigidBody* body0, RigidBody* body1);
+
+    // Sphere-box collision test.
+    void collisionDetectSphereBox(RigidBody* body0, RigidBody* body1);
+
+    // Box-plane collision test
+    void collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1);
+
+    // Box-SDF collision test
+    void collisionDetectBoxSdf(RigidBody* body0, RigidBody* body1);
+
+    // SDF-SDF collision test
+    void collisionDetectSdfSdf(RigidBody* body0, RigidBody* body1);
+
+private:
+
+    RigidBodySystem* m_rigidBodySystem;
+    std::vector<Contact*> m_contacts;
+
+};
