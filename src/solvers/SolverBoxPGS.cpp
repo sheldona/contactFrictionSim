@@ -70,7 +70,7 @@ namespace
     }
 }
 
-SolverBoxPGS::SolverBoxPGS(RigidBodySystem* _rigidBodySystem) : m_rigidBodySystem(_rigidBodySystem), m_maxIter(10)
+SolverBoxPGS::SolverBoxPGS(RigidBodySystem* _rigidBodySystem) : Solver(_rigidBodySystem)
 {
 
 }

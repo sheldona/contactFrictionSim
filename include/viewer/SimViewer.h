@@ -50,12 +50,8 @@ public slots:
     void setPaused(bool);
     void stepOnce();
 
-    void setExtForceMagnitude(double);
-    void setExtForceDir(int);
-    void setExtForceId(int);
-    void applyExtImpulse();
-
     void createBoxOnPlane();
+    void createBoxBallStack();
     void createMarbleBox();
     void createBunnies();
 
@@ -84,11 +80,6 @@ private:
     int m_subSteps;
     bool m_paused;                      //< Pause the simulation.
     bool m_stepOnce;                    //< Advance the simulation by one frame and then stop.
-
-    int m_extImpulseId;
-    float m_extImpulseMag;
-    int m_extImpulseDir;
-    int m_extImpulseCounter;
 
     // Shader for drawing the mouse spring.
     GLuint m_mouseVAO;

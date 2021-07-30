@@ -1,17 +1,12 @@
 #pragma once
 
-class RigidBodySystem;
+#include "solvers/Solver.h"
 
-class SolverBoxBPP
+class SolverBoxBPP : public Solver
 {
 public:
     SolverBoxBPP(RigidBodySystem* _rigidBodySystem);
 
     virtual void solve(float h);
-
-protected:
-
-    RigidBodySystem* m_rigidBodySystem;
-    unsigned int m_maxIter;
 
 };

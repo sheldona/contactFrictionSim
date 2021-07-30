@@ -56,7 +56,7 @@ public:
     Eigen::VectorXf lambda;     //< Constraint impulse
     float k;                    //< Contact stiffness
     float b;
-    unsigned int index;         // Used for global indexing (auxiliary)
+    unsigned int index;         // Auxiliary variable used for global indexing
 
 protected:
 

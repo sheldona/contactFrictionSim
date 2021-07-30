@@ -8,8 +8,7 @@
 
 namespace
 {
-    enum eIndexSet { kFree = 0, kLower, kUpper };
-
+    enum eIndexSet { kFree = 0, kLower, kUpper, kIgnore };
 
     static inline void multAndSub(const JBlock& G, const Eigen::Vector3f& x, const Eigen::Vector3f& y, const float a, Eigen::Ref<Eigen::VectorXf> b)
     {
@@ -23,7 +22,8 @@ namespace
 
     static inline unsigned int initContacts(std::vector<Contact*>& contacts)
     {
-        // First pass: count the number of rows/cols
+        // Count the number of constraint rows
+        // and assign each contact an index.
         //
         unsigned int rows = 0;
         for(auto c : contacts)
@@ -46,11 +46,12 @@ namespace
             upper(c->index) = std::numeric_limits<float>::max();
 
             // Friction rows.
+            // Compute the box bounds as [-mu*lambda_n, mu*lambda_n]
             //
             for(unsigned int i = 1; i < dim; ++i)
             {
-                lower(c->index+i) = -c->mu * c->lambda(0);
-                upper(c->index+i) = c->mu * c->lambda(0);
+                lower(c->index + i) = -c->mu * c->lambda(0);
+                upper(c->index + i) = c->mu * c->lambda(0);
             }
         }
     }
@@ -60,7 +61,7 @@ namespace
         for(auto c : contacts)
         {
             const float hinv = 1.0f / h;
-            const float gamma = 0.9f;//h * c->k / (h * c->k + c->b); // error reduction parameter
+            const float gamma = h * c->k / (h * c->k + c->b); // error reduction parameter
             const unsigned int dim = c->J0.rows();
             b.segment(c->index, dim) = hinv * gamma * c->phi;
 
@@ -85,8 +86,8 @@ namespace
             const unsigned int dim = c->J0.rows();
             const float eps = 1.0f / (h * h * c->k + h * c->b);    // constraint force mixing
 
-            A.block(c->index, c->index, dim, dim) = 1e-4f * Eigen::MatrixXf::Identity(dim, dim);
-            //A(c->index, c->index) += eps;
+            A.block(c->index, c->index, dim, dim) = 1e-12f * Eigen::MatrixXf::Identity(dim, dim);
+            A(c->index, c->index) += eps;
 
             if( !c->body0->fixed )
             {
@@ -111,7 +112,7 @@ namespace
 
             if( !c->body1->fixed )
             {
-                A.block(c->index, c->index, dim, dim) += c->J1Minv*c->J1.transpose();
+                A.block(c->index, c->index, dim, dim) += c->J1Minv * c->J1.transpose();
 
                 for(auto cc : c->body1->contacts)
                 {
@@ -133,21 +134,22 @@ namespace
 
     }
 
-    static inline unsigned int pivot(Eigen::VectorXi& idx, Eigen::VectorXf& z, const Eigen::VectorXf& l, const Eigen::VectorXf& u, const Eigen::VectorXf& w)
+    static inline unsigned int pivot(Eigen::VectorXi& idx, Eigen::VectorXf& x, const Eigen::VectorXf& l, const Eigen::VectorXf& u, const Eigen::VectorXf& w)
     {
-        static const float tol = 1e-4f;
-
+        static const float tol = 1e-5f;
         unsigned int numPivots = 0;
         const unsigned int n = idx.rows();
-        for(unsigned int j = 0; j < n && (numPivots == 0); ++j)
+        for (unsigned int j = 0; j < n; ++j)
         {
             int new_idx = kFree;
 
-            if(idx[j] == kFree && z[j] <= l[j])
+            if (idx[j] == kIgnore) continue;
+
+            if(idx[j] == kFree && x[j] <= l[j])
             {
                 new_idx = kLower;
             }
-            else if(idx[j] == kFree && z[j] >= u[j])
+            else if(idx[j] == kFree && x[j] >= u[j])
             {
                 new_idx = kUpper;
             }
@@ -169,8 +171,6 @@ namespace
         return numPivots;
     }
 
-
-
     static inline unsigned int tightIndices(const Eigen::VectorXi& idx, std::vector<int>& tightIdx)
     {
         const unsigned int n = idx.rows();
@@ -186,7 +186,6 @@ namespace
         }
         return numTight;
     }
-
 
     static inline unsigned int freeIndices(const Eigen::VectorXi& idx, std::vector<int>& freeIdx)
     {
@@ -214,13 +213,12 @@ namespace
         std::vector<int> freeIdx, tightIdx;
         const unsigned int numTight = tightIndices(idx, tightIdx);
         const unsigned int numFree = freeIndices(idx, freeIdx);
-
         if( numFree > 0 )
         {
             Eigen::MatrixXf Aff(numFree, numFree);
             Eigen::VectorXf bf(numFree);
 
-            // Build sub-matrix and rhs vector using free indices
+            // Build sub-matrix using free indices
             //
             for(unsigned int j = 0; j < numFree; ++j)
             {
@@ -228,10 +226,17 @@ namespace
                 {
                     Aff(i,j) = A(freeIdx[i], freeIdx[j]);
                 }
-                bf(j) = b(freeIdx[j]);
             }
 
-            // Update rhs vector with tight indices
+            // Build rhs vector using free indices
+            //
+            for (unsigned int i = 0; i < numFree; ++i)
+            {
+                bf(i) = b(freeIdx[i]);
+            }
+
+            // Update rhs vector with impulses from tight indices
+            //  e.g.     bf -= A_ft * x_t
             //
             for(unsigned int j = 0; j < numTight; ++j)
             {
@@ -239,23 +244,28 @@ namespace
                 {
                     if( idx[tightIdx[j]] == kLower )
                     {
-                        bf(i) -= A(i, j) * l(tightIdx[j]);
+                        bf(i) -= A(freeIdx[i], tightIdx[j]) * l(tightIdx[j]);
                     }
                     else if( idx[tightIdx[j]] == kUpper )
                     {
-                        bf(i) -= A(i, j) * u(tightIdx[j]);
+                        bf(i) -= A(freeIdx[i], tightIdx[j]) * u(tightIdx[j]);
                     }
                 }
             }
 
+            // Cholesky solve for the principal sub-problem.
+            //
             Eigen::LDLT<Eigen::MatrixXf> ldlt(Aff);
             const Eigen::VectorXf xf = ldlt.solve(bf);
 
+            // Update free variables with the solution
             for(unsigned int i = 0; i < numFree; ++i)
             {
                 x(freeIdx[i]) = xf(i);
             }
 
+            // Update tight variables with values from lower/upper bounds.
+            //
             for(unsigned int i = 0; i < numTight; ++i)
             {
                 if( idx[tightIdx[i]] == kLower )
@@ -273,7 +283,8 @@ namespace
 
     static inline void updateContacts(const Eigen::VectorXf& x, std::vector<Contact*>& contacts)
     {
-        // Distribute to the contacts
+        // Distribute impulses to the contacts
+        //
         for(auto c : contacts)
         {
             const unsigned int dim = c->J0.rows();
@@ -284,11 +295,8 @@ namespace
 }
 
 
-SolverBoxBPP::SolverBoxBPP(RigidBodySystem* _rigidBodySystem) :
-    m_rigidBodySystem(_rigidBodySystem),
-    m_maxIter(50)
+SolverBoxBPP::SolverBoxBPP(RigidBodySystem* _rigidBodySystem) : Solver(_rigidBodySystem)
 {
-
 
 }
 
@@ -299,7 +307,6 @@ void SolverBoxBPP::solve(float h)
     const unsigned int numContacts = contacts.size();
     if( numContacts > 0 )
     {
-
         const unsigned int dim = initContacts(contacts);
 
         Eigen::MatrixXf A = Eigen::MatrixXf::Zero(dim,dim);
@@ -310,37 +317,56 @@ void SolverBoxBPP::solve(float h)
         //
         Eigen::VectorXf lower = Eigen::VectorXf::Zero(dim);
         Eigen::VectorXf upper = Eigen::VectorXf::Zero(dim);
-        updateBounds(contacts, lower, upper);
 
-        // Initialize the index set.
+		updateBounds(contacts, lower, upper);
+
+		// Initialize the index set.
         // All variables are initially set to 'free'.
         //
-        Eigen::VectorXi idx = Eigen::VectorXi::Constant(dim, kFree);
+		Eigen::VectorXi idx = Eigen::VectorXi::Constant(dim, kFree);
 
+		// Ignore variables where lower and upper are zero.
+		//
+		for (int i = 0; i < dim; ++i)
+		{
+			static const float tol = 1e-5f;
+			if (std::abs(upper(i)) < tol && std::abs(lower(i) < tol))
+				idx(i) = kIgnore;
+		}
+
+        // Construct the lead matrix and rhs vector.
+        //
         buildMatrix(contacts, h, A);
         buildRHS(contacts, h, b);
 
-        for(int k = 0; k < 2; ++k)
+        // Perform an initial solve to update friction box bounds.
+        // 
+        solvePrincipalSubproblem(A, b, idx, lower, upper, x);
+        updateContacts(x, contacts);
+        updateBounds(contacts, lower, upper);
+        idx.setConstant(kFree);
+
+        // Block pivoting iterations.
+        //
+        for(unsigned int iter = 0; iter < m_maxIter; ++iter)
         {
-            idx.setConstant(kFree);
-            for(unsigned int iter = 0; iter < m_maxIter; ++iter)
-            {
-                x.setZero();
-                solvePrincipalSubproblem(A, b, idx, lower, upper, x);
+            // Solve the principal sub-problem:
+            //    A_ff * x_f = b_f - A_ft * x_t
+            //
+            solvePrincipalSubproblem(A, b, idx, lower, upper, x);
 
-                Eigen::VectorXf w = A*x - b;
-                const int numPivots = pivot(idx, x, lower, upper, w);
+            // Compute residual velocity w
+            //
+            const Eigen::VectorXf w = A*x - b;
 
-                if( numPivots == 0 )
-                {
-                    break;      // Done
-                }
-            }
-
-            updateContacts(x, contacts);
-            updateBounds(contacts, lower, upper);
+            // Pivot.
+            const int numPivots = pivot(idx, x, lower, upper, w);
+            if( numPivots == 0 )
+                break;      // Done
         }
 
+        updateContacts(x, contacts);
+        updateBounds(contacts, lower, upper);
     }
 }
 

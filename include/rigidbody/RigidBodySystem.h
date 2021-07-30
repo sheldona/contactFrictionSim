@@ -7,8 +7,7 @@
 
 class Contact;
 class CollisionDetect;
-class SolverBoxPGS;
-class SolverBoxBPP;
+class Solver;
 class RigidBody;
 
 typedef std::function<void(std::vector<RigidBody*>&)> PreStepFunc;
@@ -45,7 +44,7 @@ public:
     void setContactStiffness(float _stiffness) { m_contactStiffness = _stiffness; }
     void setContactDamping(float _damping) { m_contactDamping = _damping; }
     void setFrictionCoefficient(float _mu) { m_mu = _mu; }
-    void setPGSIterations(int _pgsIter) { m_pgsIter = _pgsIter; }
+    void setSolverIterations(int _solverIter) { m_solverIter = _solverIter; }
 
     // Callbacks
     void setPreStepFunc(PreStepFunc _func) { m_preStepFunc = _func; }
@@ -58,7 +57,7 @@ private:
     float m_contactStiffness;
     float m_contactDamping;
     float m_mu;
-    int m_pgsIter;
+    int m_solverIter;
     int m_frame;
 
     // Compute the world-space inverse inertia matrices for all bodies.
@@ -70,9 +69,7 @@ private:
 
     PreStepFunc m_preStepFunc;
     ResetFunc m_resetFunc;
-
-    SolverBoxPGS* m_solver;
-    //SolverBoxBPP* m_solver;
+    Solver* m_solver;
 };
 
 

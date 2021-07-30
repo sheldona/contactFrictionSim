@@ -1,10 +1,8 @@
 #include "rigidbody/RigidBodySystem.h"
 
-#include "rigidbody/RigidBody.h"
-
 #include "collision/CollisionDetect.h"
 #include "contact/Contact.h"
-#include "util/MeshAssets.h"
+#include "rigidbody/RigidBody.h"
 
 #include "solvers/SolverBoxPGS.h"
 #include "solvers/SolverBoxBPP.h"
@@ -17,12 +15,12 @@ namespace Eigen
 
 RigidBodySystem::RigidBodySystem() :
     m_frame(0),
-    m_contactStiffness(1e5f), m_contactDamping(1e4f),
-    m_mu(0.4f), m_pgsIter(10), m_preStepFunc(nullptr), m_resetFunc(nullptr)
+    m_contactStiffness(1e6f), m_contactDamping(1e5f),
+    m_mu(0.4f), m_solverIter(20), m_preStepFunc(nullptr), m_resetFunc(nullptr)
 {
     m_collisionDetect = std::make_unique<CollisionDetect>(this);
-    m_solver = new SolverBoxPGS(this);
-    //m_solver = new SolverBoxBPP(this);
+    //m_solver = new SolverBoxPGS(this);
+    m_solver = new SolverBoxBPP(this);
 }
 
 RigidBodySystem::~RigidBodySystem()
@@ -91,6 +89,9 @@ void RigidBodySystem::step(float dt)
         {
             b->xdot += dt * (1.0f/b->mass) * (b->f + b->fc);
             b->omega += dt * b->Iinv * (b->tau + b->tauc);
+            b->x += dt * b->xdot;
+            b->q = b->q + 0.5f * dt * Eigen::Quaternionf(0, b->omega[0], b->omega[1], b->omega[2]) * b->q;
+            b->q.normalize();
         }
         else
         {
@@ -98,9 +99,6 @@ void RigidBodySystem::step(float dt)
             b->omega.setZero();
         }
 
-        b->x += dt * b->xdot;
-        b->q = b->q + 0.5f * dt * Eigen::Quaternionf(0, b->omega[0], b->omega[1], b->omega[2])*b->q;
-        b->q.normalize();
     }
 
     ++m_frame;
@@ -150,7 +148,7 @@ void RigidBodySystem::calcConstraintForces(float dt)
 {
     // Solve for the constraint forces lambda
     //
-    //m_solver->setMaxIter(m_pgsIter);
+    m_solver->setMaxIter(m_solverIter);
     m_solver->solve(dt);
 
     // Apply the constraint forces as forces and torques acting on each body.
@@ -165,10 +163,17 @@ void RigidBodySystem::calcConstraintForces(float dt)
     {
         const Eigen::Vector6f f0 = c->J0.transpose() * c->lambda / dt;
         const Eigen::Vector6f f1 = c->J1.transpose() * c->lambda / dt;
-        c->body0->fc += f0.head<3>();
-        c->body0->tauc += f0.tail<3>();
-        c->body1->fc += f1.head<3>();
-        c->body1->tauc += f1.tail<3>();
+
+        if (!c->body0->fixed)
+        {
+            c->body0->fc += f0.head<3>();
+            c->body0->tauc += f0.tail<3>();
+        }
+        if (!c->body1->fixed)
+        {
+            c->body1->fc += f1.head<3>();
+            c->body1->tauc += f1.tail<3>();
+        }
     }
 }
 

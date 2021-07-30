@@ -35,6 +35,7 @@ void MainWindow::addViewer(SimViewer* viewer)
     connect(ui->pause, SIGNAL(toggled(bool)), viewer, SLOT(setPaused(bool)));
 
     connect(ui->boxPlane, SIGNAL(clicked()), viewer, SLOT(createBoxOnPlane()));
+    connect(ui->boxBallStack, SIGNAL(clicked()), viewer, SLOT(createBoxBallStack()));
     connect(ui->bunnies, SIGNAL(clicked()), viewer, SLOT(createBunnies()));
     connect(ui->marblesBox, SIGNAL(clicked()), viewer, SLOT(createMarbleBox()));
 

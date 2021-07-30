@@ -16,8 +16,14 @@ class CollisionDetect
 {
 public:
 
+    // Constructor.
+    //
     CollisionDetect(RigidBodySystem* rigidBodySystem);
 
+    // Tests for collisions between all pairs of bodies in the rigid body system
+    // and generates contacts for any intersecting geometries.
+    // The array of generated contacts can be retrieved by calling getContacts().
+    //
     void detectCollisions();
 
     void clear();

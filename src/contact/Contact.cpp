@@ -2,13 +2,13 @@
 #include "rigidbody/RigidBody.h"
 
 Contact::Contact() : p(), n(), t1(), t2(), mu(0.4f),
-    body0(nullptr), body1(nullptr), k(1e5f), b(1e4f), index(-1)
+    body0(nullptr), body1(nullptr), k(1e6f), b(1e5f), index(-1)
 {
 
 }
 
 Contact::Contact(RigidBody* _body0, RigidBody* _body1, const Eigen::Vector3f& _p, const Eigen::Vector3f& _n, float _pene) :
-    p(_p), n(_n), t1(), t2(), mu(0.4f), pene(_pene), body0(_body0), body1(_body1)
+    p(_p), n(_n), t1(), t2(), mu(0.4f), pene(_pene), body0(_body0), body1(_body1), k(1e6f), b(1e5f), index(-1)
 {
     J0.setZero(3, 6);
     J1.setZero(3, 6);

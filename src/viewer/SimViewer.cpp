@@ -134,8 +134,7 @@ SimViewer::SimViewer() : QGLViewer(),
     m_gl(),
     m_dt(0.01f), m_subSteps(1),
     m_paused(false), m_stepOnce(false),
-    m_rigidBodySystem(), m_rigidBodyRenderer(),
-    m_extImpulseId(0), m_extImpulseMag(10.f), m_extImpulseDir(0), m_extImpulseCounter(0)
+    m_rigidBodySystem(), m_rigidBodyRenderer()
 {
 }
 
@@ -451,6 +450,12 @@ void SimViewer::createBoxOnPlane()
     m_rigidBodyRenderer->updateMeshVBOs();
 }
 
+void SimViewer::createBoxBallStack()
+{
+    Scenarios::createBoxBallStack(*m_rigidBodySystem);
+    m_rigidBodyRenderer->updateMeshVBOs();
+}
+
 void SimViewer::createMarbleBox()
 {
     Scenarios::createMarbleBox(*m_rigidBodySystem);
@@ -466,7 +471,7 @@ void SimViewer::createBunnies()
 
 void SimViewer::setMaxIterations(int _maxIter)
 {
-    m_rigidBodySystem->setPGSIterations(_maxIter);
+    m_rigidBodySystem->setSolverIterations(_maxIter);
 }
 
 void SimViewer::setFrictionCoefficient(double mu)
@@ -480,8 +485,8 @@ void SimViewer::preStep(std::vector<RigidBody*>& _bodies)
     //
     if( m_pickingData.body != nullptr )
     {
-        static const float k = 10.0f;
-        static const float b = 0.4f;
+        const float k = 10.0f * m_pickingData.body->mass;
+        const float b = 0.5f;
         const Eigen::Vector3f p = (m_pickingData.body->R * m_pickingData.plocal + m_pickingData.body->x);
         const Eigen::Vector3f cursorp = Eigen::Vector3f(m_pickingData.cursor[0], m_pickingData.cursor[1], m_pickingData.cursor[2]);
         const Eigen::Vector3f dx = cursorp - p;
@@ -497,44 +502,9 @@ void SimViewer::preStep(std::vector<RigidBody*>& _bodies)
         m_pickingData.body->getVelocityAtPos(p, vel);
         m_pickingData.body->addForceAtPos(p, k*dx-b*(vel.dot(v))*v);
     }
-
-    // Apply impulse to selected body
-    if( m_extImpulseCounter > 0 )
-    {
-        auto bodies = m_rigidBodySystem->getBodies();
-        if( m_extImpulseId < bodies.size() )
-        {
-            RigidBody* b = bodies[m_extImpulseId];
-
-            const Eigen::Vector3f force = m_extImpulseMag * sImpulseDirs[m_extImpulseDir];
-            b->f += force;
-        }
-        --m_extImpulseCounter;
-    }
 }
 
 void SimViewer::onReset()
 {
 
 }
-
-void SimViewer::setExtForceMagnitude(double _extImpulseMag)
-{
-    m_extImpulseMag = _extImpulseMag;
-}
-
-void SimViewer::setExtForceId(int _extImpulseMag)
-{
-    m_extImpulseId = _extImpulseMag;
-}
-
-void SimViewer::setExtForceDir(int _extImpulseDir)
-{
-    m_extImpulseDir = _extImpulseDir;
-}
-
-void SimViewer::applyExtImpulse()
-{
-    m_extImpulseCounter = 10;
-}
-
