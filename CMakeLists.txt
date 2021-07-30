@@ -112,7 +112,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include 3rdParty/QGLViewer 3rdPa
 # Setup source code groups
 #
 source_group(src FILES main.cpp MainWindow.cpp)
-source_group(include FILES MainWindow.cpp)
+source_group(include FILES MainWindow.h)
 source_group(ui FILES main.ui)
 source_group(3rdParty/qglviewer/src FILES ${qglviewer_SOURCE})
 source_group(3rdParty/qglviewer/include FILES ${qglviewer_HEADERS})

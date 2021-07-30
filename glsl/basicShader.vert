@@ -19,4 +19,3 @@ main()
      fNormal = normalize(normalMatrix * vNormal);
      gl_Position = projMatrix * vEyeCoord;
 }
-

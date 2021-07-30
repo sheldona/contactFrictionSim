@@ -84,15 +84,24 @@ CollisionDetect::CollisionDetect(RigidBodySystem* rigidBodySystem) : m_rigidBody
 
 void CollisionDetect::detectCollisions()
 {
+    // First, clear any existing contacts.
+    //
+    clear();
 
+    // Next, loop over all pairs of bodies and test for contacts.
+    //
     auto bodies = m_rigidBodySystem->getBodies();
-
     for(unsigned int i = 0; i < bodies.size(); ++i)
     {
         for(unsigned int j = i+1; j < bodies.size(); ++j)
         {
             RigidBody* body0 = bodies[i];
             RigidBody* body1 = bodies[j];
+
+            // Special case: skip tests for pairs of static bodies.
+            //
+            if (body0->fixed && body1->fixed) 
+                continue;
 
             // Test for sphere-sphere collision.
             if( body0->geometry->getType() == kSphere &&

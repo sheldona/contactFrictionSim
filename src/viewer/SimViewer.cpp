@@ -445,9 +445,9 @@ void SimViewer::setDrawContacts(bool _draw)
     m_rigidBodyRenderer->setDrawContactsEnabled(_draw);
 }
 
-void SimViewer::createTestSystem()
+void SimViewer::createBoxOnPlane()
 {
-    Scenarios::createBoxOnInclinedPlane(*m_rigidBodySystem);
+    Scenarios::createBoxOnPlane(*m_rigidBodySystem);
     m_rigidBodyRenderer->updateMeshVBOs();
 }
 

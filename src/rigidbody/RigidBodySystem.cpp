@@ -60,7 +60,6 @@ void RigidBodySystem::step(float dt)
         m_preStepFunc(m_bodies);
     }
 
-    m_collisionDetect->clear();
     m_collisionDetect->detectCollisions();
     m_collisionDetect->computeContactJacobians();
 

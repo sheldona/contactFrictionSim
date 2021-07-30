@@ -12,7 +12,7 @@ public:
 
     // Box on a plane
     //
-    static void createBoxOnInclinedPlane(RigidBodySystem& rigidBodySystem)
+    static void createBoxOnPlane(RigidBodySystem& rigidBodySystem)
     {
         rigidBodySystem.clear();
 

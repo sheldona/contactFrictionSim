@@ -34,12 +34,7 @@ void MainWindow::addViewer(SimViewer* viewer)
     connect(ui->frictionCoeff, SIGNAL(valueChanged(double)), viewer, SLOT(setFrictionCoefficient(double)));
     connect(ui->pause, SIGNAL(toggled(bool)), viewer, SLOT(setPaused(bool)));
 
-    connect(ui->applyExtImpulse, SIGNAL(clicked()), viewer, SLOT(applyExtImpulse()));
-    connect(ui->extForceId, SIGNAL(valueChanged(int)), viewer, SLOT(setExtForceId(int)));
-    connect(ui->extForceDir, SIGNAL(currentIndexChanged(int)), viewer, SLOT(setExtForceDir(int)));
-    connect(ui->extForceMag, SIGNAL(valueChanged(double)), viewer, SLOT(setExtForceMagnitude(double)));
-
-    connect(ui->testButton, SIGNAL(clicked()), viewer, SLOT(createTestSystem()));
+    connect(ui->boxPlane, SIGNAL(clicked()), viewer, SLOT(createBoxOnPlane()));
     connect(ui->bunnies, SIGNAL(clicked()), viewer, SLOT(createBunnies()));
     connect(ui->marblesBox, SIGNAL(clicked()), viewer, SLOT(createMarbleBox()));
 

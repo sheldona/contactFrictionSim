@@ -55,7 +55,7 @@ public slots:
     void setExtForceId(int);
     void applyExtImpulse();
 
-    void createTestSystem();
+    void createBoxOnPlane();
     void createMarbleBox();
     void createBunnies();
 
