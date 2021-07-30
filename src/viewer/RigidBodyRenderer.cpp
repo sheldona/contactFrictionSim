@@ -14,7 +14,6 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-
 namespace
 {
     static const GLsizeiptr positionOffset = 0;
@@ -45,27 +44,6 @@ namespace
             gl->glUniform3f(shader.KdLoc, body->mesh->material.Kd[0], body->mesh->material.Kd[1], body->mesh->material.Kd[2]);
             gl->glUniform3f(shader.KsLoc, body->mesh->material.Ks[0], body->mesh->material.Ks[1], body->mesh->material.Ks[2]);
             gl->glUniform1f(shader.KnLoc, body->mesh->material.Kn);
-            if( body->mesh->material.map_diffuse )
-            {
-                gl->glUniform1i(shader.useTextureLoc, 1);
-                gl->glActiveTexture(GL_TEXTURE0);
-                body->mesh->material.map_diffuse->bind();
-            }
-            else
-            {
-                gl->glUniform1i(shader.useTextureLoc, 0);
-            }
-
-            if( body->mesh->material.map_bump )
-            {
-                gl->glUniform1i(shader.useNormalMapLoc, 1);
-                gl->glActiveTexture(GL_TEXTURE1);
-                body->mesh->material.map_bump->bind();
-            }
-            else
-            {
-                gl->glUniform1i(shader.useNormalMapLoc, 0);
-            }
 
             const GLuint first = body->mesh->vboOffset / sizeof(Vertex);
             const GLsizei count = body->mesh->vertices.size();
@@ -211,14 +189,6 @@ void RigidBodyRenderer::init()
         if ((m_objectShader.vNormalLoc = m_objectShader.program->attributeLocation(shaderParameter)) < 0)
             qDebug() << "Unable to find shader location for " << shaderParameter;
 
-        shaderParameter = "vTangent";
-        if ((m_objectShader.vTangentLoc = m_objectShader.program->attributeLocation(shaderParameter)) < 0)
-            qDebug() << "Unable to find shader location for " << shaderParameter;
-
-        shaderParameter = "vUV";
-        if ((m_objectShader.vUvLoc = m_objectShader.program->attributeLocation(shaderParameter)) < 0)
-            qDebug() << "Unable to find shader location for " << shaderParameter;
-
         shaderParameter = "projMatrix";
         if ((m_objectShader.projMatrixLoc = m_objectShader.program->uniformLocation(shaderParameter)) < 0)
             qDebug() << "Unable to find shader location for " << shaderParameter;
@@ -259,16 +229,8 @@ void RigidBodyRenderer::init()
         if ((m_objectShader.lKaLoc = m_objectShader.program->uniformLocation(shaderParameter)) < 0)
             qDebug() << "Unable to find shader location for " << shaderParameter;
 
-        shaderParameter = "useTexture";
-        if ((m_objectShader.useTextureLoc = m_objectShader.program->uniformLocation(shaderParameter)) < 0)
-            qDebug() << "Unable to find shader location for " << shaderParameter;
-
         shaderParameter = "useLighting";
         if ((m_objectShader.useLightingLoc = m_objectShader.program->uniformLocation(shaderParameter)) < 0)
-            qDebug() << "Unable to find shader location for " << shaderParameter;
-
-        shaderParameter = "useNormalMap";
-        if ((m_objectShader.useNormalMapLoc = m_objectShader.program->uniformLocation(shaderParameter)) < 0)
             qDebug() << "Unable to find shader location for " << shaderParameter;
 
         // Create mesh VBO object
@@ -282,10 +244,6 @@ void RigidBodyRenderer::init()
         m_gl->glEnableVertexAttribArray(m_objectShader.vPositionLoc);
         m_gl->glVertexAttribPointer(m_objectShader.vNormalLoc, 3, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(normalOffset));
         m_gl->glEnableVertexAttribArray(m_objectShader.vNormalLoc);
-        m_gl->glVertexAttribPointer(m_objectShader.vTangentLoc, 3, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(tangentOffset));
-        m_gl->glEnableVertexAttribArray(m_objectShader.vTangentLoc);
-        m_gl->glVertexAttribPointer(m_objectShader.vUvLoc, 2, GL_FLOAT, GL_FALSE, stride, BUFFER_OFFSET(uvOffset));
-        m_gl->glEnableVertexAttribArray(m_objectShader.vUvLoc);
         m_objectShader.program->bind();
     }
     // Setup contact shader.

@@ -1,7 +1,7 @@
-#version 430 core
-layout (location=0) uniform mat4 mvMatrix;
-layout (location=1) uniform mat4 projMatrix;
-layout (location=3) in vec4 vPosition;
+#version 400 core
+uniform mat4 mvMatrix;
+uniform mat4 projMatrix;
+in vec4 vPosition;
 
 void
 main()

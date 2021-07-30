@@ -13,17 +13,13 @@ struct ShaderVars
     GLuint normalMatrixLoc;
     GLuint vPositionLoc;
     GLuint vNormalLoc;
-    GLuint vTangentLoc;
     GLuint lPositionLoc;
-    GLuint vUvLoc;
     GLuint KdLoc;
     GLuint KsLoc;
     GLuint KnLoc;
     GLuint lKdLoc;
     GLuint lKsLoc;
     GLuint lKaLoc;
-    GLuint useTextureLoc;
-    GLuint useNormalMapLoc;
     GLuint useLightingLoc;
     GLuint userParams[6];
 };

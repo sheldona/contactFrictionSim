@@ -11,6 +11,7 @@
 #include <qglviewer.h>
 #include <QPoint>
 #include <Eigen/Dense>
+#include <memory>
 
 #include "contact/Contact.h"
 #include "ShaderVars.h"
