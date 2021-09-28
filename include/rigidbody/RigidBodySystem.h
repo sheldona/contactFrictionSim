@@ -13,6 +13,8 @@ class RigidBody;
 typedef std::function<void(std::vector<RigidBody*>&)> PreStepFunc;
 typedef std::function<void()> ResetFunc;
 
+enum eSolverType { kPGS = 0, kBPP };
+
 class RigidBodySystem
 {
 public:
@@ -21,6 +23,7 @@ public:
 
     virtual ~RigidBodySystem();
 
+    // Advance the simulation.
     void step(float _dt);
 
     // Remove all rigid bodies and cleanup the memory.
@@ -46,7 +49,9 @@ public:
     void setFrictionCoefficient(float _mu) { m_mu = _mu; }
     void setSolverIterations(int _solverIter) { m_solverIter = _solverIter; }
 
-    // Callbacks
+    void setSolverType(eSolverType _solverType) { m_solverType = _solverType; }
+
+    // Callbacks.
     void setPreStepFunc(PreStepFunc _func) { m_preStepFunc = _func; }
     void setResetFunc(ResetFunc _func) { m_resetFunc = _func; }
 
@@ -58,6 +63,7 @@ private:
     float m_contactDamping;
     float m_mu;
     int m_solverIter;
+    eSolverType m_solverType;
     int m_frame;
 
     // Compute the world-space inverse inertia matrices for all bodies.
@@ -69,7 +75,6 @@ private:
 
     PreStepFunc m_preStepFunc;
     ResetFunc m_resetFunc;
-    Solver* m_solver;
 };
 
 

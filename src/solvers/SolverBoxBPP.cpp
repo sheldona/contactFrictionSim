@@ -35,6 +35,9 @@ namespace
         return rows;
     }
 
+    // Update the box bounds, lower and upper, of the constraint impulses.
+    // The value in Contact::lambda is used for updating the bounds.
+    //
     static inline void updateBounds(std::vector<Contact*>& contacts, Eigen::VectorXf& lower, Eigen::VectorXf& upper)
     {
         for(auto c : contacts)
@@ -47,6 +50,7 @@ namespace
 
             // Friction rows.
             // Compute the box bounds as [-mu*lambda_n, mu*lambda_n]
+            // which is an approximation of the isotropic Coulomb friction cone.
             //
             for(unsigned int i = 1; i < dim; ++i)
             {
@@ -56,14 +60,15 @@ namespace
         }
     }
 
+    // Build the rhs vector of the Schur complement linear system.
+    //
     static inline void buildRHS(const std::vector<Contact*>& contacts, float h, Eigen::VectorXf& b)
     {
         for(auto c : contacts)
         {
-            const float hinv = 1.0f / h;
             const float gamma = h * c->k / (h * c->k + c->b); // error reduction parameter
             const unsigned int dim = c->J0.rows();
-            b.segment(c->index, dim) = hinv * gamma * c->phi;
+            b.segment(c->index, dim) = -gamma * c->phi / h;
 
             multAndSub(c->J0, c->body0->xdot, c->body0->omega, 1.0f, b.segment(c->index, dim));
             multAndSub(c->J1, c->body1->xdot, c->body1->omega, 1.0f, b.segment(c->index, dim));
@@ -79,6 +84,8 @@ namespace
         }
     }
 
+    // Build the Schur complement system using the contact constraints.
+    //
     static inline void buildMatrix(const std::vector<Contact*>& contacts, float h, Eigen::MatrixXf& A)
     {
         for(auto c : contacts)
@@ -86,7 +93,7 @@ namespace
             const unsigned int dim = c->J0.rows();
             const float eps = 1.0f / (h * h * c->k + h * c->b);    // constraint force mixing
 
-            A.block(c->index, c->index, dim, dim) = 1e-12f * Eigen::MatrixXf::Identity(dim, dim);
+            A.block(c->index, c->index, dim, dim) = 1e-10f * Eigen::MatrixXf::Identity(dim, dim);
             A(c->index, c->index) += eps;
 
             if( !c->body0->fixed )
@@ -134,30 +141,37 @@ namespace
 
     }
 
-    static inline unsigned int pivot(Eigen::VectorXi& idx, Eigen::VectorXf& x, const Eigen::VectorXf& l, const Eigen::VectorXf& u, const Eigen::VectorXf& w)
+    // Pivoting rules.
+    // The index set is updates based on the LCP variables x and v.
+    // Specifically, 'free' variables are pivoted to the 'tight' set if the lower or upper bounds are violated.
+    // Similarly, 'tight' variables are pivoted to the 'free' set if the residual velocity v has the wrong sign.
+    // 
+    static inline unsigned int pivot(Eigen::VectorXi& idx, Eigen::VectorXf& x, const Eigen::VectorXf& l, const Eigen::VectorXf& u, const Eigen::VectorXf& v)
     {
         static const float tol = 1e-5f;
         unsigned int numPivots = 0;
         const unsigned int n = idx.rows();
         for (unsigned int j = 0; j < n; ++j)
         {
-            int new_idx = kFree;
+            // By default, assume all variables belong to the 'free' set.
+            //
+            int new_idx = kFree;  
 
             if (idx[j] == kIgnore) continue;
 
-            if(idx[j] == kFree && x[j] <= l[j])
+            if(idx[j] == kFree && x[j] <= l[j])     // case: free variable, lower bound
             {
                 new_idx = kLower;
             }
-            else if(idx[j] == kFree && x[j] >= u[j])
+            else if(idx[j] == kFree && x[j] >= u[j])  // case: free variable, upper bound
             {
                 new_idx = kUpper;
             }
-            else if(idx[j] == kLower && w[j] > -tol)
+            else if(idx[j] == kLower && v[j] > -tol)    // case: lower tight variable, +ve velocity
             {
                 new_idx = kLower;
             }
-            else if(idx[j] == kUpper && w[j] < tol)
+            else if(idx[j] == kUpper && v[j] < tol)     // case: upper tight variable, -ve velocity
             {
                 new_idx = kUpper;
             }
@@ -171,6 +185,8 @@ namespace
         return numPivots;
     }
 
+    // Returns the indices of tight variables in tightIdx.
+    //
     static inline unsigned int tightIndices(const Eigen::VectorXi& idx, std::vector<int>& tightIdx)
     {
         const unsigned int n = idx.rows();
@@ -187,6 +203,8 @@ namespace
         return numTight;
     }
 
+    // Returns the indices of free variables in freeIdx.
+    //
     static inline unsigned int freeIndices(const Eigen::VectorXi& idx, std::vector<int>& freeIdx)
     {
         const unsigned int n = idx.rows();
@@ -203,6 +221,23 @@ namespace
         return numFree;
     }
 
+    // Solve the principal sub-problem comprising the free variables:
+    //      Aff * xf = bf - Aft * xt
+    // 
+    //  where Aff is the sub-matrix of free variables, bf are the corresponding entries in the rhs vector,
+    //  Aft is the sub-matrix that couples the tight variables and the free variables, and 
+    //  xt are the tight variables whose values is determined by the lower and upper bounds (l and u).
+    //
+    // Inputs: 
+    //    A - the lead matrix
+    //    b - the rhs vector
+    //    idx - the index set of all variables
+    //    l - the lower bounds
+    //    u - the upper bounds
+    //
+    // Outputs:
+    //    x - the solution of constraint impulses (free and tight variables)
+    //
     static inline void solvePrincipalSubproblem(const Eigen::MatrixXf& A,
                                                 const Eigen::VectorXf& b,
                                                 const Eigen::VectorXi& idx,
@@ -351,16 +386,17 @@ void SolverBoxBPP::solve(float h)
         for(unsigned int iter = 0; iter < m_maxIter; ++iter)
         {
             // Solve the principal sub-problem:
-            //    A_ff * x_f = b_f - A_ft * x_t
+            //    Aff * xf = bf - Aft * xt
             //
             solvePrincipalSubproblem(A, b, idx, lower, upper, x);
 
-            // Compute residual velocity w
+            // Compute residual velocity v.
             //
-            const Eigen::VectorXf w = A*x - b;
+            const Eigen::VectorXf v = A*x - b;
 
             // Pivot.
-            const int numPivots = pivot(idx, x, lower, upper, w);
+            // 
+            const int numPivots = pivot(idx, x, lower, upper, v);
             if( numPivots == 0 )
                 break;      // Done
         }

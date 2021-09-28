@@ -12,26 +12,32 @@ namespace Eigen
     typedef Matrix<float, 6, 1, ColMajor> Vector6f;
 }
 
+namespace
+{
+    static Solver* s_solvers[2];
+}
 
 RigidBodySystem::RigidBodySystem() :
     m_frame(0),
     m_contactStiffness(1e6f), m_contactDamping(1e5f),
-    m_mu(0.4f), m_solverIter(20), m_preStepFunc(nullptr), m_resetFunc(nullptr)
+    m_mu(0.4f), m_solverIter(20), m_solverType(kPGS), m_preStepFunc(nullptr), m_resetFunc(nullptr)
 {
     m_collisionDetect = std::make_unique<CollisionDetect>(this);
-    //m_solver = new SolverBoxPGS(this);
-    m_solver = new SolverBoxBPP(this);
+    s_solvers[kPGS] = new SolverBoxPGS(this);
+    s_solvers[kBPP] = new SolverBoxBPP(this);
 }
 
 RigidBodySystem::~RigidBodySystem()
 {
     clear();
-    delete m_solver;
 }
 
 void RigidBodySystem::addBody(RigidBody *_b)
 {
+    // Initialize auxilary rotation variable.
     _b->R = _b->q.toRotationMatrix();
+
+    // Add the body.
     m_bodies.push_back(_b);
 }
 
@@ -148,8 +154,8 @@ void RigidBodySystem::calcConstraintForces(float dt)
 {
     // Solve for the constraint forces lambda
     //
-    m_solver->setMaxIter(m_solverIter);
-    m_solver->solve(dt);
+    s_solvers[m_solverType]->setMaxIter(m_solverIter);
+    s_solvers[m_solverType]->solve(dt);
 
     // Apply the constraint forces as forces and torques acting on each body.
     // Essentially, we compute contact forces by computing :
@@ -161,6 +167,8 @@ void RigidBodySystem::calcConstraintForces(float dt)
     auto contacts = m_collisionDetect->getContacts();
     for(const auto c : contacts)
     {
+        // Convert impulses in c->lambda to forces.
+        //
         const Eigen::Vector6f f0 = c->J0.transpose() * c->lambda / dt;
         const Eigen::Vector6f f1 = c->J1.transpose() * c->lambda / dt;
 

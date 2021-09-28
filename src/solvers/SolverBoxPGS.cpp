@@ -19,11 +19,14 @@ namespace
             b -= a * G.col(5) * y(2);
     }
 
+
+	// Computes the right-hand side vector of the Schur complement system: 
+    //      b = gamma*phi/h - J*vel - dt*JMinvJT*force
+    //
     static inline void buildRHS(Contact* c, float h, Eigen::VectorXf& b)
     {
-        const float hinv = 1.0f / h;
-        const float gamma = h * c->k / (h * c->k + c->b); // error reduction parameter
-        b = hinv * gamma * c->phi;
+        const float gamma = h * c->k / (h * c->k + c->b);       // error reduction parameter
+        b = -gamma * c->phi / h;
 
         multAndSub(c->J0, c->body0->xdot, c->body0->omega, 1.0f, b);
         multAndSub(c->J1, c->body1->xdot, c->body1->omega, 1.0f, b);
@@ -38,10 +41,10 @@ namespace
         }
     }
 
-    // Loop over all other contacts involving _body
-    //      and compute : x -= (J0*Minv0*Jother^T) * lambda_other
+    // Loop over all other contacts for a body and compute modifications to the rhs vector b: 
+    //           x -= (JMinv*Jother^T) * lambda_other
     //
-    static inline void accumulateCoupledContacts(Contact* c, const JBlock& JMinv, RigidBody* body, Eigen::VectorXf& x)
+    static inline void accumulateCoupledContacts(Contact* c, const JBlock& JMinv, RigidBody* body, Eigen::VectorXf& b)
     {
         if( body->fixed )
             return;
@@ -51,20 +54,31 @@ namespace
             if( cc != c )
             {
                 if( body == cc->body0 )
-                {
-                    x -= JMinv * (cc->J0.transpose() * cc->lambda);
-                }
+                    b -= JMinv * (cc->J0.transpose() * cc->lambda);
                 else
-                {
-                    x -= JMinv * (cc->J1.transpose() * cc->lambda);
-                }
+                    b -= JMinv * (cc->J1.transpose() * cc->lambda);
             }
         }
     }
 
+    // Solve the Boxed LCP problem for a single contact and isotropic Coulomb friction.
+    // The solution vector, @a x, contains the impulse the non-interpenetration constraint in x(0), and
+    // the friction constraints in x(1) and x(2)
+    // 
+    // The solution is projected to the lower and upper bounds imposed by the box model.
+    // 
+    // Inputs: 
+    //    x - contains three impulse variables (non-interpenetration + two friction)
+    //    b - rhs vector
+    //    mu - the friction coefficient
     static inline void solveContact(const Eigen::Matrix3f& A, const Eigen::VectorXf& b, Eigen::VectorXf& x, const float mu)
     {
+        // Normal impulse is projected to [0, inf]
+        //
         x(0) = std::max(0.0f, (b(0) - A(0,1) * x(1) - A(0,2) * x(2) ) / A(0,0) );
+
+        // Next, friction impulses are projected to [-mu * x(0), mu * x(1)]
+        //
         x(1) = std::max(-mu*x(0), std::min(mu*x(0), ( b(1) - A(1,0) * x(0) - A(1,2) * x(2) ) / A(1,1) ));
         x(2) = std::max(-mu*x(0), std::min(mu*x(0), ( b(2) - A(2,0) * x(0) - A(2,1) * x(1) ) / A(2,2) ));
     }
@@ -80,8 +94,9 @@ void SolverBoxPGS::solve(float h)
     std::vector<Contact*>& contacts = m_rigidBodySystem->getContacts();
     const int numContacts = contacts.size();
 
-    // Build diagonal matrices of contacts
-    std::vector<Eigen::MatrixXf> Acontactii;
+    // Build array of 3x3 diagonal matrices, one for each contact.
+    // 
+    std::vector<Eigen::Matrix3f> Acontactii;
     if( numContacts > 0 )
     {
         // Build diagonal matrices
@@ -109,7 +124,8 @@ void SolverBoxPGS::solve(float h)
         std::vector<Eigen::VectorXf> b;
         b.resize(numContacts);
 
-        // Compute the right-hand side vector : b = phi - J*vel - dt*JMinvJT*force
+        // Compute the right-hand side vector : 
+        //      b = -gamma*phi/h - J*vel - dt*JMinvJT*force
         //
         for(int i = 0; i < numContacts; ++i)
         {

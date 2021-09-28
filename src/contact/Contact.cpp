@@ -42,17 +42,17 @@ void Contact::computeJacobian()
     phi.setZero(3);
     phi(0) = pene;
 
-    // normal
+    // normal row (non-interpenetration)
     J0.block(0, 0, 1, 3) = n.transpose();
     J0.block(0, 3, 1, 3) = r0.cross(n).transpose();
     J1.block(0, 0, 1, 3) = -n.transpose();
     J1.block(0, 3, 1, 3) = -r1.cross(n).transpose();
-    // tangent 1
+    // tangent 1 (friction)
     J0.block(1, 0, 1, 3) = t1.transpose();
     J0.block(1, 3, 1, 3) = r0.cross(t1).transpose();
     J1.block(1, 0, 1, 3) = -t1.transpose();
     J1.block(1, 3, 1, 3) = -r1.cross(t1).transpose();
-    // tangent 2
+    // tangent 2 (friction)
     J0.block(2, 0, 1, 3) = t2.transpose();
     J0.block(2, 3, 1, 3) = r0.cross(t2).transpose();
     J1.block(2, 0, 1, 3) = -t2.transpose();

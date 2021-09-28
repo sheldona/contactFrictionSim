@@ -201,9 +201,6 @@ void SimViewer::init()
     // Add pre-step hook.
     m_rigidBodySystem->setPreStepFunc(std::bind(&SimViewer::preStep, this, std::placeholders::_1));
 
-    // Add reset hook.
-    m_rigidBodySystem->setResetFunc(std::bind(&SimViewer::onReset, this));
-
     LightingParams lighting;
     lighting.pos = QVector4D(-20.0f, 50.0f, 0.0f, 1.0f);
     lighting.ambient = QVector3D(0.05f, 0.05f, 0.05f);
@@ -332,7 +329,9 @@ void SimViewer::animate()
     if( !m_paused || m_stepOnce )
     {
         auto dynamics_start = std::chrono::high_resolution_clock::now();
-        // Step the simulation
+
+        // Step the simulation.
+        // The time step dt is divided by the number of sub-steps.
         //
         const float dt = m_dt / (float)m_subSteps;
         for(int i = 0; i < m_subSteps; ++i)
@@ -468,6 +467,10 @@ void SimViewer::createBunnies()
     m_rigidBodyRenderer->updateMeshVBOs();
 }
 
+void SimViewer::setSolver(eSolverType _solverType)
+{
+    m_rigidBodySystem->setSolverType(_solverType);
+}
 
 void SimViewer::setMaxIterations(int _maxIter)
 {
@@ -502,9 +505,4 @@ void SimViewer::preStep(std::vector<RigidBody*>& _bodies)
         m_pickingData.body->getVelocityAtPos(p, vel);
         m_pickingData.body->addForceAtPos(p, k*dx-b*(vel.dot(v))*v);
     }
-}
-
-void SimViewer::onReset()
-{
-
 }

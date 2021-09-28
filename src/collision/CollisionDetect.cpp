@@ -22,7 +22,7 @@ namespace
         const float dp = (p - plane_p).dot(plane_n);
         if (dp < 0.0f)
         {
-            phi = std::max(0.0f, -dp);
+            phi = std::min(0.0f, dp);
             return true;
         }
         return false;
@@ -45,7 +45,7 @@ namespace
         if ( sdist < 1e-5 )
         {
             n = grad.cast<float>();
-            phi = (float)-sdist;
+            phi = (float) sdist;
             return true;
         }
 
@@ -209,7 +209,7 @@ void CollisionDetect::collisionDetectSphereSphere(RigidBody* body0, RigidBody* b
     {
         const Eigen::Vector3f n = vec / dist;
         const Eigen::Vector3f p = 0.5f * ((body0->x - sphere0->radius*n) + (body1->x + sphere1->radius*n));
-        const float phi = rsum-dist;
+        const float phi = dist-rsum;
 
         m_contacts.push_back( new Contact(body0, body1, p, n, phi) );
     }
@@ -234,7 +234,7 @@ void CollisionDetect::collisionDetectSphereBox(RigidBody* body0, RigidBody* body
     {
         const Eigen::Vector3f n = body1->R * (dx/dist);
         const Eigen::Vector3f p = body1->R * q + body1->x;
-        const float phi = sphere->radius - dist;
+        const float phi = dist - sphere->radius;
 
         m_contacts.push_back( new Contact(body0, body1, p, n, phi) );
     }

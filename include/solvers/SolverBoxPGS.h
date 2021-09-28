@@ -12,7 +12,7 @@ public:
 
     SolverBoxPGS(RigidBodySystem* _rigidBodySystem);
 
-    // Implement solve method that solves for the constraint forces in @a m_rigidBodySystem.
+    // Implement PGS method that solves for the constraint forces in @a m_rigidBodySystem.
     //
     virtual void solve(float h);
 

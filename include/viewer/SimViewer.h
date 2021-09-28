@@ -14,10 +14,10 @@
 #include <memory>
 
 #include "contact/Contact.h"
+#include "rigidbody/RigidBodySystem.h"
 #include "ShaderVars.h"
 
 QT_FORWARD_DECLARE_CLASS(RigidBodyRenderer)
-QT_FORWARD_DECLARE_CLASS(RigidBodySystem)
 QT_FORWARD_DECLARE_CLASS(QOpenGLFramebufferObject)
 
 class SimViewer : public QGLViewer
@@ -55,6 +55,8 @@ public slots:
     void createMarbleBox();
     void createBunnies();
 
+    void setSolver(eSolverType);
+
 signals:
 
     void statusMessageChanged(const QString&);
@@ -71,7 +73,6 @@ protected :
     QOpenGLFunctions_4_0_Core m_gl;
 
     void preStep(std::vector<RigidBody*>&);
-    void onReset();
 
 private:
 
