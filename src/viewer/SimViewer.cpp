@@ -472,6 +472,24 @@ void SimViewer::setSolver(eSolverType _solverType)
     m_rigidBodySystem->setSolverType(_solverType);
 }
 
+void SimViewer::setSolverPGS(bool _trigger)
+{
+    if (_trigger) 
+        m_rigidBodySystem->setSolverType(kPGS);
+}
+
+void SimViewer::setSolverBPP(bool _trigger)
+{
+    if (_trigger) 
+        m_rigidBodySystem->setSolverType(kBPP);
+}
+
+void SimViewer::setSolverPROX(bool _trigger)
+{
+    if (_trigger) 
+        m_rigidBodySystem->setSolverType(kPROX);
+}
+
 void SimViewer::setMaxIterations(int _maxIter)
 {
     m_rigidBodySystem->setSolverIterations(_maxIter);

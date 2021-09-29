@@ -328,6 +328,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QRadioButton" name="proxRadio">
+            <property name="text">
+             <string>PROX</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </widget>

@@ -56,6 +56,9 @@ public slots:
     void createBunnies();
 
     void setSolver(eSolverType);
+    void setSolverPGS(bool _trigger);
+    void setSolverBPP(bool _trigger);
+    void setSolverPROX(bool _trigger);
 
 signals:
 

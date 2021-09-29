@@ -13,7 +13,7 @@ class RigidBody;
 typedef std::function<void(std::vector<RigidBody*>&)> PreStepFunc;
 typedef std::function<void()> ResetFunc;
 
-enum eSolverType { kPGS = 0, kBPP };
+enum eSolverType { kPGS = 0, kBPP, kPROX };
 
 class RigidBodySystem
 {

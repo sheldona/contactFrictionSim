@@ -9,8 +9,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(OpenGL REQUIRED)
 find_package(OpenMP REQUIRED)
+set(QTDIR "C:/Qt/5.15.1/msvc2019_64")
+set(CMAKE_PREFIX_PATH "C:/Qt/5.15.1/msvc2019_64/")
+set(CMAKE_LIBRARY_PATH "C:/Qt/5.15.1/msvc2019_64/lib")
 find_package(Qt5 REQUIRED COMPONENTS Core Widgets Xml)
- 
+
 set(qglviewer_HEADERS 3rdParty/QGLViewer/camera.h
             3rdParty/QGLViewer/config.h
             3rdParty/QGLViewer/constraint.h
@@ -78,9 +81,11 @@ set(contact_HEADERS include/contact/Contact.h )
 set(contact_SOURCE src/contact/Contact.cpp )
 
 set(solver_HEADERS include/solvers/SolverBoxPGS.h 
-                   include/solvers/SolverBoxBPP.h )
+                   include/solvers/SolverBoxBPP.h
+                   include/solvers/SolverPROX.h )
 set(solver_SOURCE src/solvers/SolverBoxPGS.cpp 
-                   src/solvers/SolverBoxBPP.cpp )
+                   src/solvers/SolverBoxBPP.cpp
+                   src/solvers/SolverPROX.cpp )
 
 set(util_HEADERS include/util/MeshAssets.h
                  include/util/MeshUtils.h

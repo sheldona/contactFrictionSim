@@ -33,7 +33,9 @@ void MainWindow::addViewer(SimViewer* viewer)
     connect(ui->contactDamping, SIGNAL(valueChanged(double)), viewer, SLOT(setContactDamping(double)));
     connect(ui->frictionCoeff, SIGNAL(valueChanged(double)), viewer, SLOT(setFrictionCoefficient(double)));
     connect(ui->pause, SIGNAL(toggled(bool)), viewer, SLOT(setPaused(bool)));
-    connect(ui->pgsRadio, SIGNAL(toggled(bool)), viewer, SLOT(setSolver(kPGS)));
+    connect(ui->pgsRadio, SIGNAL(toggled(bool)), viewer, SLOT(setSolverPGS(bool)));
+    connect(ui->bppRadio, SIGNAL(toggled(bool)), viewer, SLOT(setSolverBPP(bool)));
+    connect(ui->proxRadio, SIGNAL(toggled(bool)), viewer, SLOT(setSolverPROX(bool)));
 
     connect(ui->boxPlane, SIGNAL(clicked()), viewer, SLOT(createBoxOnPlane()));
     connect(ui->boxBallStack, SIGNAL(clicked()), viewer, SLOT(createBoxBallStack()));

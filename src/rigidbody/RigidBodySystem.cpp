@@ -6,6 +6,7 @@
 
 #include "solvers/SolverBoxPGS.h"
 #include "solvers/SolverBoxBPP.h"
+#include "solvers/SolverPROX.h"
 
 namespace Eigen
 {
@@ -25,6 +26,7 @@ RigidBodySystem::RigidBodySystem() :
     m_collisionDetect = std::make_unique<CollisionDetect>(this);
     s_solvers[kPGS] = new SolverBoxPGS(this);
     s_solvers[kBPP] = new SolverBoxBPP(this);
+    s_solvers[kPROX] = new SolverPROX(this);
 }
 
 RigidBodySystem::~RigidBodySystem()
