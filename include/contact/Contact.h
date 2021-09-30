@@ -29,6 +29,8 @@ public:
     Eigen::Vector3f t1, t2;     // Tangent directions.
     float mu;                   // Coefficient of friction.
     float pene;                 // Penetration
+    Eigen::VectorXf w;
+    size_t tag;
 
     virtual void computeJacobian();
 
