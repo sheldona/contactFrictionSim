@@ -22,13 +22,13 @@ public:
         RigidBody* body1 = new RigidBody(1.0f, new Box(Eigen::Vector3f(1.0f, 1.0f, 1.0f)), "resources/box.obj");
         body1->x = Eigen::Vector3f(0.0f, 0.49f, 0.0f);
 
-        RigidBody* body2 = new RigidBody(10.0f, new Box(Eigen::Vector3f(1.0f, 1.0f, 1.0f)), "resources/box.obj");
-        body2->x = Eigen::Vector3f(2.0f, 0.49f, 0.0f);
-        body2->xdot = Eigen::Vector3f(0.0f, 0.0f, 10.0f);
+        // RigidBody* body2 = new RigidBody(10.0f, new Box(Eigen::Vector3f(1.0f, 1.0f, 1.0f)), "resources/box.obj");
+        // body2->x = Eigen::Vector3f(2.0f, 0.49f, 0.0f);
+        // body2->xdot = Eigen::Vector3f(0.0f, 0.0f, 10.0f);
 
         rigidBodySystem.addBody(body0);
         rigidBodySystem.addBody(body1);
-        rigidBodySystem.addBody(body2);
+        // rigidBodySystem.addBody(body2);
     }
 
     // Stack of boxes and spheres.
