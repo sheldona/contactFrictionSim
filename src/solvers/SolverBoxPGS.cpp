@@ -155,6 +155,11 @@ void SolverBoxPGS::solve(float h)
                 solveContact(Acontactii[i], x, c->lambda, c->mu);
             }
         }
+        // for (size_t i = 0; i < numContacts; i++)
+        // {
+        //     std::cout << i << " lambda: "
+        //               << "(" << contacts[i]->lambda[0] << ", " << contacts[i]->lambda[1] << ", " << contacts[i]->lambda[2] << ")" << std::endl;
+        // }
     }
 }
 

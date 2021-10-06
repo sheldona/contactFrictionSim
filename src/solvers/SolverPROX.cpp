@@ -7,11 +7,12 @@
 
 namespace  {
 
-static inline void printVector3f(std::string name, const Eigen::Vector3f& v) {
+static inline void print(std::string name, const Eigen::Vector3f& v) {
     std::cout << name << " : (" << v[0] << ", " << v[1] << ", " << v[2] << ")" << std::endl;
 }
 
-static inline void printVectorXf(std::string name, const Eigen::VectorXf& v) {
+static inline void print(std::string name, const Eigen::VectorXf &v)
+{
     std::cout << name << " : (";
     for (int i=0; i<v.size(); i++) {
         std::cout << v[i] << ", ";
@@ -19,14 +20,15 @@ static inline void printVectorXf(std::string name, const Eigen::VectorXf& v) {
     std::cout << ")" << std::endl;
 }
 
-static inline void printMatrix3f(std::string name, const Eigen::Matrix3f& m) {
+static inline void print(std::string name, const Eigen::Matrix3f &m)
+{
     std::cout << name << " : ";
     for (int i=0; i<m.rows(); i++) {
         std::cout << m(i, 0) << ", " <<  m(i, 1) << ", " << m(i, 2) << std::endl;
     }
 }
 
-static inline void printMatrixXf(std::string name, const Eigen::MatrixXf& m) {
+static inline void print(std::string name, const Eigen::MatrixXf& m) {
     std::cout << name << " : " << std::endl;
     for (int i=0; i<m.rows(); i++) {
         for (int j=0; j<m.cols(); j++) {
@@ -141,7 +143,15 @@ static inline void buildRHS(Contact* j, float dt, Eigen::Vector3f& b)
 
     const float hinv = 1.0f / dt;
     const float gamma = j->k / (j->k + hinv * j->b); // error reduction parameter
-    b = -hinv * hinv * gamma * j->phi;
+    b = hinv * hinv * gamma * j->phi;
+
+    // std::cout << "contact damping " << j->b << std::endl;
+    // std::cout << "contact stiffness " << j->k << std::endl;
+    // std::cout << "hinv " << hinv << std::endl;
+    // std::cout << "gamma " << gamma << std::endl;
+    // std::cout << "phi " << j->phi << std::endl;
+    // printVector3f("b ", b);
+
     if( !j->body0->fixed )
     {
         multAndSub(j->J0Minv, j->body0->f, j->body0->tau, 1.0f, b);
@@ -362,12 +372,29 @@ static inline void propagateW(RigidBody* body0, RigidBody* body1, float w0, floa
         }
     }
 }
+static inline void accumulateCoupledContacts(Contact *c, const JBlock &JMinv, RigidBody *body, Eigen::Vector3f &b)
+{
+    if (body->fixed)
+        return;
 
+    for (Contact *cc : body->contacts)
+    {
+        if (cc != c)
+        {
+            if (body == cc->body0)
+                b -= JMinv * (cc->J0.transpose() * cc->lambda);
+            else
+                b -= JMinv * (cc->J1.transpose() * cc->lambda);
+        }
+    }
+}
 }
 
 // Update the w of all the related bodies
 //            propagateW(contacts[k]->body0, contacts[k]->body1, temp[3], temp[4], temp[5]);
 //            propagateW(contacts[k]->body1, contacts[k]->body0, temp[0], temp[1], temp[2]);
+
+
 
 // 2 body implementation
 void SolverPROX::solveContact(std::vector<Eigen::Matrix3f>& A, std::vector<Eigen::Vector3f>& b, std::vector<Eigen::Vector3f>& lambda, std::vector<Eigen::Vector4f>& coeffs, std::vector<Eigen::MatrixXf>& J, std::vector<Eigen::MatrixXf>& MinvJT, std::vector<Contact*>& contacts) {
@@ -380,7 +407,6 @@ void SolverPROX::solveContact(std::vector<Eigen::Matrix3f>& A, std::vector<Eigen
     }
 
     x = lambda; // warm starting
-
 
     int abs_conv_in_iteration = -1;
     int rel_conv_in_iteration = -1;
@@ -412,19 +438,25 @@ void SolverPROX::solveContact(std::vector<Eigen::Matrix3f>& A, std::vector<Eigen
     for (size_t iter=0; iter<m_maxIter; iter++) {
         // Loop over contact points
         for (size_t k=0; k<A.size(); k++) {
-            std::cout << "=============================================" << std::endl;
+            accumulateCoupledContacts(contacts[k], contacts[k]->J0Minv, contacts[k]->body0, b[k]);
+            accumulateCoupledContacts(contacts[k], contacts[k]->J1Minv, contacts[k]->body1, b[k]);
+
+            // std::cout << "=============================================" << std::endl;
             x_k = x[k];
             deltax = x[k];
 
-//            printVector3f("b_k", b[k]);
-//            printMatrixXf("R_k", R[k]);
-//            printMatrixXf("J_k", J[k]);
-//            printVector3f("z_k before", z_k);
+            // print("z_k before", z_k);
+            // print("init x_k", x_k);
+            // print("init deltax", deltax);
+            // print("b_k", b[k]);
+            // print("R_k", R[k]);
+            // print("J_k", J[k]);
+            // print("contact_k", contacts[k]->w);
 
             // Compute z_k
             compute_z_k(x_k, contacts[k]->w, R[k], b[k], z_k, k, J[k]);
 
-//            printVector3f("z_k after", z_k);
+        //    print("z_k after", z_k);
 
             // Project the normal component
             normal_solver(z_k, x_k);
@@ -432,12 +464,18 @@ void SolverPROX::solveContact(std::vector<Eigen::Matrix3f>& A, std::vector<Eigen
             x_k[1] = z_k[1];
             x_k[2] = z_k[2];
 
-            printVector3f("x_k before", x_k);
+            // print("post normal x_k", x_k);
+            // print("post normal deltax", deltax);
+
+            // printVector3f("x_k before", x_k);
 
             // Project the tangential component
             friction_solver(z_k, x_k, coeffs[k]);
 
-            printVector3f("x_k after", x_k);
+            // print("post friction x_k", x_k);
+            // print("post friction deltax", deltax);
+
+            // printVector3f("x_k after", x_k);
 
             // delta_x = x_k_new - x_k_old
             deltax = x_k - deltax;
@@ -449,58 +487,58 @@ void SolverPROX::solveContact(std::vector<Eigen::Matrix3f>& A, std::vector<Eigen
 
 
 
-//            contacts[k]->w += temp;
-//             std::vector<size_t> alreadyVisistedContacts;
-//             for (size_t i=0; i<contacts[k]->body0->contacts.size(); i++) {
-// //                std:: cout << "Loop of body0" << std::endl;
-//                 Contact* cc = contacts[k]->body0->contacts[i];
-//                 if (!checkInVector(alreadyVisistedContacts, cc->tag)) {
-//                     alreadyVisistedContacts.push_back(cc->tag);
+           contacts[k]->w += temp;
 
-//                     // Check if contact has the same bodies as contact_k
-//                     if ((contacts[k]->body0->tag == cc->body0->tag && contacts[k]->body1->tag == cc->body1->tag)
-//                             || (contacts[k]->body1->tag == cc->body0->tag && contacts[k]->body0->tag == cc->body1->tag)
-//                             || (contacts[k]->body0->tag == cc->body1->tag && contacts[k]->body1->tag == cc->body0->tag)
-//                             ) {
-// //                        std::cout << "Contact: " << cc->tag << std::endl;
-//                         cc->w += temp;
-//                     }
-//                 }
-//             }
-//            std::cout << "++++++++++++++" << std::endl;
-//            for (size_t i=0; i<contacts[k]->body1->contacts.size(); i++) {
-//                std:: cout << "Loop of body1" << std::endl;
-//                Contact* cc = contacts[k]->body1->contacts[i];
-//                if (!checkInVector(alreadyVisistedContacts, cc->tag)) {
-//                    alreadyVisistedContacts.push_back(cc->tag);
+           //             std::vector<size_t> alreadyVisistedContacts;
+           //             for (size_t i=0; i<contacts[k]->body0->contacts.size(); i++) {
+           // //                std:: cout << "Loop of body0" << std::endl;
+           //                 Contact* cc = contacts[k]->body0->contacts[i];
+           //                 if (!checkInVector(alreadyVisistedContacts, cc->tag)) {
+           //                     alreadyVisistedContacts.push_back(cc->tag);
 
-//                    // Check if contact has the same bodies as contact_k
-//                    if ((contacts[k]->body0->tag == cc->body0->tag && contacts[k]->body1->tag == cc->body1->tag)
-//                        || (contacts[k]->body1->tag == cc->body0->tag && contacts[k]->body0->tag == cc->body1->tag)
-//                        || (contacts[k]->body0->tag == cc->body1->tag && contacts[k]->body1->tag == cc->body0->tag)
-//                        ) {
-//                        std::cout << "Contact: " << cc->tag << std::endl;
-//                        cc->w += temp;
-//                    }
-//                }
-//            }
-//            std::cout << "======================" << std::endl;
-//            contacts[k]->body0->w[0] += temp[0];
-//            contacts[k]->body0->w[1] += temp[1];
-//            contacts[k]->body0->w[2] += temp[2];
+           //                     // Check if contact has the same bodies as contact_k
+           //                     if ((contacts[k]->body0->tag == cc->body0->tag && contacts[k]->body1->tag == cc->body1->tag)
+           //                             || (contacts[k]->body1->tag == cc->body0->tag && contacts[k]->body0->tag == cc->body1->tag)
+           //                             || (contacts[k]->body0->tag == cc->body1->tag && contacts[k]->body1->tag == cc->body0->tag)
+           //                             ) {
+           // //                        std::cout << "Contact: " << cc->tag << std::endl;
+           //                         cc->w += temp;
+           //                     }
+           //                 }
+           //             }
+           //            std::cout << "++++++++++++++" << std::endl;
+           //            for (size_t i=0; i<contacts[k]->body1->contacts.size(); i++) {
+           //                std:: cout << "Loop of body1" << std::endl;
+           //                Contact* cc = contacts[k]->body1->contacts[i];
+           //                if (!checkInVector(alreadyVisistedContacts, cc->tag)) {
+           //                    alreadyVisistedContacts.push_back(cc->tag);
 
-//            contacts[k]->body1->w[0] += temp[3];
-//            contacts[k]->body1->w[1] += temp[4];
-//            contacts[k]->body1->w[2] += temp[5];
+           //                    // Check if contact has the same bodies as contact_k
+           //                    if ((contacts[k]->body0->tag == cc->body0->tag && contacts[k]->body1->tag == cc->body1->tag)
+           //                        || (contacts[k]->body1->tag == cc->body0->tag && contacts[k]->body0->tag == cc->body1->tag)
+           //                        || (contacts[k]->body0->tag == cc->body1->tag && contacts[k]->body1->tag == cc->body0->tag)
+           //                        ) {
+           //                        std::cout << "Contact: " << cc->tag << std::endl;
+           //                        cc->w += temp;
+           //                    }
+           //                }
+           //            }
+           //            std::cout << "======================" << std::endl;
+           //            contacts[k]->body0->w[0] += temp[0];
+           //            contacts[k]->body0->w[1] += temp[1];
+           //            contacts[k]->body0->w[2] += temp[2];
 
-//            propagateW(contacts[k]->body0, contacts[k]->body1, temp[3], temp[4], temp[5]);
-//            propagateW(contacts[k]->body1, contacts[k]->body0, temp[0], temp[1], temp[2]);
+           //            contacts[k]->body1->w[0] += temp[3];
+           //            contacts[k]->body1->w[1] += temp[4];
+           //            contacts[k]->body1->w[2] += temp[5];
 
+           //            propagateW(contacts[k]->body0, contacts[k]->body1, temp[3], temp[4], temp[5]);
+           //            propagateW(contacts[k]->body1, contacts[k]->body0, temp[0], temp[1], temp[2]);
 
-            // residual = lambda^k - lambda^(k+1)
-            residual[k] = lambda[k] - x_k;
+           // residual = lambda^k - lambda^(k+1)
+           residual[k] = lambda[k] - x_k;
 
-            x[k] = x_k;
+           x[k] = x_k;
         }
 
         residual_norm = infiniteNorm(residual);
@@ -536,7 +574,13 @@ void SolverPROX::solveContact(std::vector<Eigen::Matrix3f>& A, std::vector<Eigen
 
     }
     lambda = x;
-    std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+    // for (int i=0; i<lambda.size(); i++) {
+    //     for (int j=0; j<lambda[i].size(); j++) {
+    //         std::cout << lambda[i][j] << ", ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+    // std::cout << "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
 //    outf << abs_conv_in_iteration << "," << rel_conv_in_iteration << "," << count_divergence << "," << residual_norm  << '\n';
 }
 
@@ -611,6 +655,11 @@ void SolverPROX::solve(float h)
             coeffs[i][1] = c->mu;
             coeffs[i][2] = c->mu;
             coeffs[i][3] = c->mu;
+
+            // printMatrix3f("Acontacts[i]", Acontacts[i]);
+            // printMatrixXf("AJ[i]", AJ[i]);
+            // printMatrixXf("MinvJT[i]", MinvJT[i]);
+            // printVector3f("lambdasContacts[i]", lambdasContacts[i]);
         }
 
         // Assemble b
@@ -631,13 +680,13 @@ void SolverPROX::solve(float h)
         solveContact(Acontacts, bContacts, lambdasContacts, coeffs, AJ, MinvJT, contacts);
 
 //        // DEBUGGING: Check size of lambdas after
-//        for (size_t i=0; i<lambdasContacts.size(); i++) {
-//            std::cout << i << " lambda: " << "(" << lambdasContacts[i][0] << ", " << lambdasContacts[i][1] << ", " << lambdasContacts[i][2] << ")" << std::endl;
-//        }
+    //    for (size_t i=0; i<lambdasContacts.size(); i++) {
+    //        std::cout << i << " lambda: " << "(" << lambdasContacts[i][0] << ", " << lambdasContacts[i][1] << ", " << lambdasContacts[i][2] << ")" << std::endl;
+    //    }
 
         // Set the new lambdas to the old contact lambdas
         for (size_t i=0; i<lambdasContacts.size(); i++) {
-            contacts[i]->lambda = lambdasContacts[i];
+            contacts[i]->lambda = lambdasContacts[i] * h;
         }
 //        std::cout << "=============================================================================" << std::endl;
     }
