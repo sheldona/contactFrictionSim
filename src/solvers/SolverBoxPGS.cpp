@@ -157,4 +157,3 @@ void SolverBoxPGS::solve(float h)
         }
     }
 }
-

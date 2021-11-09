@@ -180,6 +180,14 @@ static inline void friction_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k, E
     x_k[1] = (a*a*z_s) / (a*a + t_k);
     x_k[2] = (b*b*z_t) / (b*b + t_k);
 }
+
+static inline void updateW(Eigen::VectorXf& w, const Eigen::Matrix3f& MinvJT, const Eigen::Matrix3f& IinvJT, const Eigen::Vector3f& lambda, bool fixedFlag)
+{
+    if (!fixedFlag) {
+        w.head(3) += MinvJT * lambda;
+        w.tail(3) += IinvJT * lambda;
+    }
+}
 }
 
 
@@ -279,6 +287,9 @@ void SolverPROX::solve(float h)
         float last_residual_norm = FLT_MAX;
         Eigen::Vector3f z_k = Eigen::Vector3f::Zero();
 
+        float relative_threshold = 0.0001;
+        float absolute_threshold = 0.0001;
+
         std::vector<Eigen::Vector3f> lambdaCandidate;
         std::vector<Eigen::MatrixXf> R;
         std::vector<Eigen::MatrixXf> nu;
@@ -300,14 +311,8 @@ void SolverPROX::solve(float h)
             // Initialize w = Minv * JT * lambda_k
             for (int i = 0; i < numContacts; ++i) {
                 lambdaCandidate[i] = Eigen::Vector3f::Zero();
-                if (!contacts[i]->body0->fixed) {
-                    w[contacts[i]->body0->index].head(3) += MinvJ0T[i] * lambdasContacts[i];
-                    w[contacts[i]->body0->index].tail(3) += IinvJ0T[i] * lambdasContacts[i];
-                }
-                if (!contacts[i]->body1->fixed) {
-                    w[contacts[i]->body1->index].head(3) += MinvJ1T[i] * lambdasContacts[i];
-                    w[contacts[i]->body1->index].tail(3) += IinvJ1T[i] * lambdasContacts[i];
-                }
+                updateW(w[contacts[i]->body0->index], MinvJ0T[i], IinvJ0T[i], lambdasContacts[i], contacts[i]->body0->fixed);
+                updateW(w[contacts[i]->body1->index], MinvJ1T[i], IinvJ1T[i], lambdasContacts[i], contacts[i]->body1->fixed);
             }
 
             // Solve for each contact
@@ -322,18 +327,19 @@ void SolverPROX::solve(float h)
                 residual[i] = lambdaCandidate[i] - lambdasContacts[i];
                 
                 // Update w = Minv * JT * (lambda(k+1) - lambda(k))
-                if (!contacts[i]->body0->fixed) {
-                    w[contacts[i]->body0->index].head(3) += MinvJ0T[i] * (lambdaCandidate[i] - lambdasContacts[i]);
-                    w[contacts[i]->body0->index].tail(3) += IinvJ0T[i] * (lambdaCandidate[i] - lambdasContacts[i]);
-                }
-                if (!contacts[i]->body1->fixed) {
-                    w[contacts[i]->body1->index].head(3) += MinvJ1T[i] * (lambdaCandidate[i] - lambdasContacts[i]);
-                    w[contacts[i]->body1->index].tail(3) += IinvJ1T[i] * (lambdaCandidate[i] - lambdasContacts[i]);
-                }
+                updateW(w[contacts[i]->body0->index], MinvJ0T[i], IinvJ0T[i], lambdaCandidate[i] - lambdasContacts[i], contacts[i]->body0->fixed);
+                updateW(w[contacts[i]->body1->index], MinvJ1T[i], IinvJ1T[i], lambdaCandidate[i] - lambdasContacts[i], contacts[i]->body1->fixed);
             }
 
-            // Only update lambda if solver is converging
             residual_norm = infiniteNorm(residual);
+            
+            // Check for convergence for early termination
+            if (residual_norm < absolute_threshold)
+                break;
+            if (std::fabs(residual_norm - last_residual_norm) < relative_threshold * last_residual_norm)
+                break;
+
+            // Only update lambda if solver is converging
             if (residual_norm > last_residual_norm) {
                 for (size_t j = 0; j < R.size(); j++) {
                     R[j] = nu[j] * R[j];
