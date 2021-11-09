@@ -34,7 +34,7 @@ The code has been compiled and tested on Windows (MS Visual C++ 2019), Ubuntu Li
 The main application uses [Qt5](https://doc.qt.io/qt-5/) for rendering the UI, handling mouse and keyboard calls, and managing calls to OpenGL and the shaders. For more details about installing the toolkit on your system, please see:
 [https://doc.qt.io/qt-5/gettingstarted.html](https://doc.qt.io/qt-5/gettingstarted.html) 
 
-Setting the environment variable *QT_DIR* to the path of your installation should allow CMake to find it automatically.
+Setting the environment variable *QTDIR* to the path of your installation should allow CMake to find it automatically.
 
 ### OpenGL
 The shaders and rendering code use [OpenGL 4](https://www.opengl.org/). Hopefully you already have this installed through your operating system or video card drivers.
