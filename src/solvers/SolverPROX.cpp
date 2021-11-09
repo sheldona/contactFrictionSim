@@ -7,63 +7,7 @@
 
 #include <fstream>
 
-
-// Create file to gather data for LCP error
-// Currently the format is: 
-// #<timestep>
-// per line lcp error 
-std::ofstream prox_merit_file{ "prox_merit.csv" };
-std::ofstream prox_lcp_energy_error_file{ "prox_lcp_energy_error.csv" };
-std::ofstream conv_file{"convergence_prox.csv"};
-std::set<int> timestep_samples{ 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 100, 120, 140, 160, 180 };
-bool ALL_SAMPLES = true;
-
 namespace  {
-
-// LCP error that is in units of Joules
-float unit_consistent_energy_lcp_error(Eigen::Vector3f x_k, Eigen::Matrix3f Aii, Eigen::VectorXf b, const float mu)
-{
-    float err = 0.0f;
-    for (int i = 0; i < x_k.size(); i++) {
-        float lower = -mu * x_k(i);
-        float upper = mu * x_k(i);
-        float w = Aii(i, i) * x_k(i) + b(i);
-
-        // Compute violation of the upperand lower bound
-        float delta_x_u = std::max(x_k(i) - upper, 0.0f);
-        float delta_x_l = std::max(lower - x_k(i), 0.0f);
-
-        // Compute feasible component x0
-        float x0 = std::max(lower, std::min(x_k(i), upper));
-
-        // Compute upper impulse energy error
-        float delta_e_x_u = 0.5f * Aii(i, i) * (delta_x_u * delta_x_u);
-
-        // Compute lower impulse energy error
-        float delta_e_x_l = 0.5f * Aii(i, i) * (delta_x_l * delta_x_l);
-
-        // Compute w_+ and w_-
-        float w_plus = std::max(w, 0.0f);
-        float w_minus = std::max(w, 0.0f);
-
-        // Compute the saturation of the upperand lower bound
-        float sigma_l = (x0 + delta_x_u) - lower;
-        float sigma_u = upper - (x0 - delta_x_l);
-
-        // Compute the positive velocity energy error
-        float delta_e_w_plus = std::min(((1.0f / (2.0f * (Aii(i, i) + 1e-10f))) * (w_plus * w_plus)), (0.5f * Aii(i, i) * (sigma_l * sigma_l)));
-
-        // Compute the negative velocity energy error
-        float delta_e_w_minus = std::min(((1.0f / (2.0f * (Aii(i, i) + 1e-10f))) * (w_minus * w_minus)), (0.5f * Aii(i, i) * (sigma_u * sigma_u)));
-
-        // Compute the energy error per constraint
-        float delta_e = std::max(std::max(std::abs(delta_e_x_u), std::abs(delta_e_x_l)), std::max(std::abs(delta_e_w_plus), std::abs(delta_e_w_minus)));
-
-        err += std::abs(delta_e);
-    }
-
-    return err;
-}
 
 static inline void multAndAdd(const Eigen::MatrixXf& G, const Eigen::Vector3f& x, const Eigen::Vector3f& y, const float a, Eigen::Vector3f& b)
 {
@@ -256,13 +200,8 @@ void SolverPROX::solve(float h)
         bodies[i]->index = i;
     }
 
-    if (!prox_lcp_energy_error_file) {
-        std::cerr << "uh oh, could not open/create data.csv" << std::endl;
-    }
-
     // Build diagonal matrices of contacts
     std::vector<Eigen::Matrix3f> Acontacts;
-    std::vector<Eigen::Matrix3f> Acontactii;
     std::vector<Eigen::Vector3f> lambdasContacts;
     std::vector<Eigen::Vector4f> coeffs;
     std::vector<Eigen::Vector3f> bContacts;
@@ -289,28 +228,6 @@ void SolverPROX::solve(float h)
 
             MinvJ1T[i] = (1.0f / contacts[i]->body1->mass) * contacts[i]->J1.transpose().block(0, 0, 3, 3);
             IinvJ1T[i] = contacts[i]->body1->Iinv * contacts[i]->J1.transpose().block(3, 0, 3, 3);
-        }
-
-        // Build diagonal matrices (For LCP energy error computation)
-        Acontactii.resize(numContacts);
-        for (int i = 0; i < numContacts; ++i)
-        {
-            Contact* c = contacts[i];
-            const float eps = 1.0f / (h * h * c->k + h * c->b);    // constraint force mixing
-
-            // Compute the diagonal term : Aii = J0*Minv0*J0^T + J1*Minv1*J1^T
-            //
-            Acontactii[i].setZero(3, 3);
-            Acontactii[i](0, 0) += eps;
-
-            if (!c->body0->fixed)
-            {
-                Acontactii[i] += c->J0Minv * c->J0.transpose();
-            }
-            if (!c->body1->fixed)
-            {
-                Acontactii[i] += c->J1Minv * c->J1.transpose();
-            }
         }
 
         for(int i = 0; i < numContacts; ++i)
