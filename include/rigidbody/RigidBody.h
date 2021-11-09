@@ -42,6 +42,6 @@ public:
 
     Mesh* mesh;                         // Used for rendering
 
-    Eigen::Vector3f w;                  //< M^-1 J^T lambda
+    Eigen::VectorXf w;                  //< M^-1 J^T lambda
     size_t tag;
 };

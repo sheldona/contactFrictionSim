@@ -167,7 +167,7 @@ void RigidBodySystem::calcConstraintForces(float dt)
     // for each contact constraint.
     //
     auto contacts = m_collisionDetect->getContacts();
-    for(const auto c : contacts)
+        for(const auto c : contacts)
     {
         // Convert impulses in c->lambda to forces.
         //

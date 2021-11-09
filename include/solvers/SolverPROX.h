@@ -22,5 +22,5 @@ public:
 protected:
     void solveContact(std::vector<Eigen::Matrix3f> &A, std::vector<Eigen::Vector3f> &b, std::vector<Eigen::Vector3f> &lambda, 
                         std::vector<Eigen::Vector4f> &coeffs, std::vector<Eigen::MatrixXf> &J, std::vector<Eigen::MatrixXf> &MinvJT, 
-                        std::vector<Contact *> &contacts);
+                        std::vector<Contact *> &contacts, const float h, std::vector<Eigen::Matrix3f> &Aii);
 };

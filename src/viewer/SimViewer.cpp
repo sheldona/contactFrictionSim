@@ -346,10 +346,15 @@ void SimViewer::animate()
 
         // Update status bar message.
         QString msg = "Frame: " + QString::number(m_rigidBodySystem->getFrameCount());
-        const int numContacts = m_rigidBodySystem->getContacts().size();
-        msg += ",  numContacts: " + QString::number(numContacts);
-        msg += ", dynamics: " + QString::number(m_dynamicsMicros.count()) + " us";
-        msg += ", render: " + QString::number(m_renderMicros.count()) + " us";
+        //const int numContacts = m_rigidBodySystem->getContacts().size();
+        //msg += ",  numContacts: " + QString::number(numContacts);
+        //msg += ", dynamics: " + QString::number(m_dynamicsMicros.count()) + " us";
+        //msg += ", render: " + QString::number(m_renderMicros.count()) + " us";
+        
+        std::vector<Contact*> contacts = m_rigidBodySystem->getContacts();
+        for (int i = 0; i < contacts.size(); i++) {
+            msg += ", CFM " + QString::number(contacts[i]->m_CFM);
+        }
         emit statusMessageChanged(msg);
     }
 }

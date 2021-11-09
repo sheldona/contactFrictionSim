@@ -38,6 +38,8 @@ void Contact::computeJacobian()
     J1.setZero(3, 6);
     J0Minv.setZero(3, 6);
     J1Minv.setZero(3, 6);
+    Minv0.setZero(6, 6);
+    Minv1.setZero(6, 6);
     lambda.setZero(3);
     phi.setZero(3);
     phi(0) = pene;
@@ -62,4 +64,9 @@ void Contact::computeJacobian()
     J0Minv.block(0,3,3,3) = J0.block(0, 3, 3, 3) * body0->Iinv;
     J1Minv.block(0,0,3,3) = (1.0f/body1->mass) * J1.block(0, 0, 3, 3);
     J1Minv.block(0,3,3,3) = J1.block(0, 3, 3, 3) * body1->Iinv;
+
+    Minv0.block(0,0,3,3) = (1.0f/body0->mass) * Eigen::Matrix3f::Identity();
+    Minv0.block(3,3,3,3) = body0->Iinv;
+    Minv1.block(0, 0, 3, 3) = (1.0f / body1->mass) * Eigen::Matrix3f::Identity();
+    Minv1.block(3, 3, 3, 3) = body1->Iinv;
 }
