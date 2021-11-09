@@ -324,20 +324,8 @@ void SolverBoxPGS::solve(float h)
 
         pgs_conv_file << abs_conv_in_iteration << "," << rel_conv_in_iteration << "," << count_divergence << "," << residual_norm << '\n';
 
-
-        //for (int i = 0; i < numContacts; i++) {
-        //    //pgs_comp_error_file << get_complementarity_error(contacts[i], Acontactii[i], b[i]) << " ";
-        //    pgs_lcp_energy_error_file << unit_consistent_energy_lcp_error(contacts[i], Acontactii[i], b[i]) << " ";
-        //}
         if (is_in || PGS_ALL_SAMPLES)
             pgs_lcp_energy_error_file << '\n';
- /*       for (size_t i = 0; i < numContacts; i++)
-        {
-            std::cout << i << " lambda: "
-                      << "(" << std::scientific << contacts[i]->lambda[0] << ", " << std::scientific << contacts[i]->lambda[1] << ", " << std::scientific << contacts[i]->lambda[2] << ")" << std::endl;
-        }
-        std::cout << "=============================================================================" << std::endl;
- */   
     }
 }
 

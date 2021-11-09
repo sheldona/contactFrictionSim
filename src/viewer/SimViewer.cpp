@@ -351,10 +351,6 @@ void SimViewer::animate()
         //msg += ", dynamics: " + QString::number(m_dynamicsMicros.count()) + " us";
         //msg += ", render: " + QString::number(m_renderMicros.count()) + " us";
         
-        std::vector<Contact*> contacts = m_rigidBodySystem->getContacts();
-        for (int i = 0; i < contacts.size(); i++) {
-            msg += ", CFM " + QString::number(contacts[i]->m_CFM);
-        }
         emit statusMessageChanged(msg);
     }
 }

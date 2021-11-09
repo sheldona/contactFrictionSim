@@ -32,9 +32,6 @@ public:
     Eigen::VectorXf w;
     size_t tag;
 
-    float m_CFM;
-    float m_ERP;
-
     virtual void computeJacobian();
 
     // Computes a contact frame using the contact normal @a n
@@ -65,8 +62,6 @@ public:
     JBlock J1;                  // The Jacobian of body1
     JBlock J0Minv;              // The Jacobian post-multiplied by the mass inverse (body 0).
     JBlock J1Minv;              // The Jacobian post-multiplied by the mass inverse (body 1).
-    JBlock Minv0;
-    JBlock Minv1;
     Eigen::VectorXf phi;        // Contraint error
     Eigen::VectorXf lambda;     // Constraint impulse
     float k;                    // Contact stiffness (Baumgarte stabilization)

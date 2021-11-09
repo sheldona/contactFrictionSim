@@ -41,7 +41,5 @@ public:
     std::vector<Contact*> contacts;     // Pointer array of contact constraints involving this body.
 
     Mesh* mesh;                         // Used for rendering
-
-    Eigen::VectorXf w;                  //< M^-1 J^T lambda
-    size_t tag;
+    size_t index;
 };
