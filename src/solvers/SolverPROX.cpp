@@ -3,9 +3,6 @@
 #include "contact/Contact.h"
 #include "rigidbody/RigidBody.h"
 #include "rigidbody/RigidBodySystem.h"
-#include <set>
-
-#include <fstream>
 
 namespace  {
 
@@ -51,7 +48,7 @@ static inline float infiniteNorm(const std::vector<Eigen::Vector3f>& v) {
 }
 
 // z_k = x_k - R_kk * ( wbar + b_k )
-static inline void compute_z_k(Eigen::Vector3f& x_k, Eigen::VectorXf& w0, Eigen::VectorXf& w1, const Eigen::MatrixXf& R_k, 
+static inline void computeZk(Eigen::Vector3f& x_k, Eigen::VectorXf& w0, Eigen::VectorXf& w1, const Eigen::MatrixXf& R_k, 
     const Eigen::Vector3f& b, Eigen::Vector3f& z_k, JBlock& J0, JBlock& J1) {
 
     z_k = Eigen::Vector3f::Zero();
@@ -69,7 +66,7 @@ static inline void compute_z_k(Eigen::Vector3f& x_k, Eigen::VectorXf& w0, Eigen:
 
 }
 
-static inline void initialize_R(const std::vector<Eigen::Matrix3f>& A, std::vector<Eigen::MatrixXf>& R, std::vector<Eigen::MatrixXf>& nu) {
+static inline void initializeR(const std::vector<Eigen::Matrix3f>& A, std::vector<Eigen::MatrixXf>& R, std::vector<Eigen::MatrixXf>& nu) {
     for (size_t i=0; i<R.size(); i++) {
         // Set to zero
         R[i] = Eigen::Matrix3f::Zero();
@@ -83,7 +80,7 @@ static inline void initialize_R(const std::vector<Eigen::Matrix3f>& A, std::vect
 }
 
 // lambda_n = prox_{R^+} (lambda_n - r (A * lambda_n + b))
-static inline void normal_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k) {
+static inline void normalSolver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k) {
     // Max strategy
     x_k[0] = std::max(0.0f, z_k[0]);
     x_k[1] = z_k[1];
@@ -91,15 +88,11 @@ static inline void normal_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k) {
 }
 
 // lambda_f = prox_C (lambda_f - r (A * lambda_f + b))
-static inline void friction_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k, Eigen::Vector4f& coeffs) {
+static inline void frictionSolver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k, Eigen::Vector4f& coeffs) {
     // 0: n
     // 1: s
     // 2: t
     // Set all directions to the same mu for now
-
-    using std::sqrt;
-    using std::max;
-    using std::fabs;
 
     const float z_s = z_k[1];
     const float z_t = z_k[2];
@@ -119,7 +112,7 @@ static inline void friction_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k, E
     const size_t max_k = 100;
 
     // Scale problem
-    const float scale = max(1.0f, max( a, max( b, max(fabs( z_s ), fabs( z_t )) ) ) );
+    const float scale = std::max(1.0f, std::max( a, std::max( b, std::max(std::fabs( z_s ), std::fabs( z_t )) ) ) );
 
     const float sx = z_s / scale;
     const float sy = z_t / scale;
@@ -145,7 +138,7 @@ static inline void friction_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k, E
     const float bbyy = bb*yy;
 
     float t0 = 0.0f;
-    float t1 = max(sa, sb) * sqrt(xx + yy);
+    float t1 = std::max(sa, sb) * std::sqrt(xx + yy);
     float g0 = (aaxx) / ((aa+t0)*(aa+t0)) + (bbyy) / ((bb+t0)*(bb+t0)) - 1.0f;
     float g1 = (aaxx) / ((aa+t1)*(aa+t1)) + (bbyy) / ((bb+t1)*(bb+t1)) - 1.0f;
 
@@ -159,12 +152,12 @@ static inline void friction_solver(Eigen::Vector3f& z_k, Eigen::Vector3f& x_k, E
     // Perform binary search
     float t_k = (t0+t1) * 0.5f;
     for (size_t k=0; k<max_k; k++) {
-        if (fabs(t1-t0) < tol) break;
+        if (std::fabs(t1-t0) < tol) break;
 
         const float aat = aa + t_k;
         const float bbt = bb + t_k;
         const float g_k = aaxx/(aat*aat) + bbyy/(bbt*bbt) - 1.0f;
-        if (fabs(g_k) < tol) break;
+        if (std::fabs(g_k) < tol) break;
         if (g_k > 0) {
             t0 = t_k; g0 = g_k;
         } else {
@@ -301,7 +294,7 @@ void SolverPROX::solve(float h)
         nu.resize(Acontacts.size());
         w.resize(numBodies);
 
-        initialize_R(Acontacts, R, nu);
+        initializeR(Acontacts, R, nu);
 
         for (int iter = 0; iter < m_maxIter; ++iter) {
             for (int i = 0; i < numBodies; i++) {
@@ -317,12 +310,12 @@ void SolverPROX::solve(float h)
 
             // Solve for each contact
             for (int i = 0; i < numContacts; ++i) {
-                compute_z_k(lambdasContacts[i], w[contacts[i]->body0->index], w[contacts[i]->body1->index], R[i], bContacts[i], z_k, 
+                computeZk(lambdasContacts[i], w[contacts[i]->body0->index], w[contacts[i]->body1->index], R[i], bContacts[i], z_k, 
                     contacts[i]->J0, contacts[i]->J1);
                 
-                normal_solver(z_k, lambdaCandidate[i]);
+                normalSolver(z_k, lambdaCandidate[i]);
 
-                friction_solver(z_k, lambdaCandidate[i], coeffs[i]);
+                frictionSolver(z_k, lambdaCandidate[i], coeffs[i]);
 
                 residual[i] = lambdaCandidate[i] - lambdasContacts[i];
                 
