@@ -124,14 +124,28 @@ void CollisionDetect::detectCollisions()
             // Test for plane-box collision
             else if( body1->geometry->getType() == kPlane &&
                      body0->geometry->getType() == kBox )
-            {
-                collisionDetectBoxPlane(body0, body1);
+            {                
+                if (m_rigidBodySystem->getSamplingType() == kCorners)
+                {
+                    collisionDetectBoxPlane(body0, body1);
+                }
+                else if (m_rigidBodySystem->getSamplingType() == kGrid)
+                {
+                    collisionDetectBoxPlaneGrid(body0, body1);
+                }
             }
             // Test for plane-box collision (order swap)
             else if ( body0->geometry->getType() == kPlane &&
                       body1->geometry->getType() == kBox )
             {
-                collisionDetectBoxPlane(body1, body0);
+                if (m_rigidBodySystem->getSamplingType() == kCorners)
+                {
+                    collisionDetectBoxPlane(body1, body0);
+                }
+                else if (m_rigidBodySystem->getSamplingType() == kGrid)
+                {
+                    collisionDetectBoxPlaneGrid(body1, body0);
+                }
             }
             // Test for SDF-box collision
             else if ( body0->geometry->getType() == kSDF &&
@@ -257,6 +271,7 @@ void CollisionDetect::collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1
         0.5f*Eigen::Vector3f( box->dim(0),  box->dim(1),  box->dim(2))
     };
 
+    // generate contacts at the corners of the box
     for (unsigned int i = 0; i < 8; ++i)
     {
         const Eigen::Vector3f pbox = body0->R * plocal[i] + body0->x;
@@ -264,6 +279,49 @@ void CollisionDetect::collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1
         if  ( collisionDetectPointPlane(pbox, pplane, nplane, phi) )
         {
             m_contacts.push_back( new Contact(body0, body1, pbox, nplane, phi) );
+        }
+    }
+}
+
+void CollisionDetect::collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* body1)
+{
+    Box* box = dynamic_cast<Box*>(body0->geometry.get());
+    Plane* plane = dynamic_cast<Plane*>(body1->geometry.get());
+    const Eigen::Vector3f pplane = body1->x;
+    const Eigen::Vector3f nplane = body1->R * plane->normal;
+    const unsigned int num = 4;
+    const float dist[3] = { box->dim(0) / (num - 1), box->dim(1) / (num - 1),  box->dim(2) / (num - 1) };
+    Eigen::Vector3f plocal[num][num][num];
+    for (int i = 0; i < num; ++i)
+    {
+        const float startX = -0.5f * box->dim(0);
+        for (int j = 0; j < num; ++j)
+        {
+            const float startY = -0.5f * box->dim(1);
+            for (int k = 0; k < num; ++k)
+            {
+                const float startZ = -0.5f * box->dim(2);
+                plocal[i][j][k] = Eigen::Vector3f(startX + i * dist[0], startY + j * dist[1] , startZ + k * dist[2]);
+            }
+        }
+    }
+
+    // generate contacts at the corners of the box
+    unsigned int count = 0;
+    for (int i = 0; i < num; ++i)
+    {
+        for (int j = 0; j < num; ++j)
+        {
+            for (int k = 0; k < num; ++k)
+            {
+                const Eigen::Vector3f pbox = body0->R * plocal[i][j][k] + body0->x;
+                float phi;
+                if (collisionDetectPointPlane(pbox, pplane, nplane, phi))
+                {
+                    m_contacts.push_back(new Contact(body0, body1, pbox, nplane, phi));
+                    ++count;
+                }
+            }
         }
     }
 }

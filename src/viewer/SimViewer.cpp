@@ -449,6 +449,12 @@ void SimViewer::createBoxOnPlane()
     m_rigidBodyRenderer->updateMeshVBOs();
 }
 
+void SimViewer::createBoxOnInclinedPlane()
+{
+    Scenarios::createBoxOnInclinedPlane(*m_rigidBodySystem);
+    m_rigidBodyRenderer->updateMeshVBOs();
+}
+
 void SimViewer::createBoxBallStack()
 {
     Scenarios::createBoxBallStack(*m_rigidBodySystem);
@@ -470,6 +476,11 @@ void SimViewer::createBunnies()
 void SimViewer::setSolver(eSolverType _solverType)
 {
     m_rigidBodySystem->setSolverType(_solverType);
+}
+
+void SimViewer::setSamplingMethod(eSamplingType _samplingType)
+{
+    m_rigidBodySystem->setSamplingType(_samplingType);
 }
 
 void SimViewer::setMaxIterations(int _maxIter)

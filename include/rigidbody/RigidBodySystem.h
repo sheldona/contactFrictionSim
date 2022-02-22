@@ -14,6 +14,7 @@ typedef std::function<void(std::vector<RigidBody*>&)> PreStepFunc;
 typedef std::function<void()> ResetFunc;
 
 enum eSolverType { kPGS = 0, kBPP };
+enum eSamplingType { kCorners = 0, kGrid, kSampling };
 
 class RigidBodySystem
 {
@@ -50,6 +51,8 @@ public:
     void setSolverIterations(int _solverIter) { m_solverIter = _solverIter; }
 
     void setSolverType(eSolverType _solverType) { m_solverType = _solverType; }
+    void setSamplingType(eSamplingType _samplingType) { m_samplingType = _samplingType; }
+    eSamplingType getSamplingType() { return m_samplingType; }
 
     // Callbacks.
     void setPreStepFunc(PreStepFunc _func) { m_preStepFunc = _func; }
@@ -65,6 +68,7 @@ private:
     int m_solverIter;
     eSolverType m_solverType;
     int m_frame;
+    eSamplingType m_samplingType;
 
     // Compute the world-space inverse inertia matrices for all bodies.
     //  This function also updates the rotation matrices using the quaternions.

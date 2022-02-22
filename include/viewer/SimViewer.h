@@ -51,11 +51,13 @@ public slots:
     void stepOnce();
 
     void createBoxOnPlane();
+    void createBoxOnInclinedPlane();
     void createBoxBallStack();
     void createMarbleBox();
     void createBunnies();
 
     void setSolver(eSolverType);
+    void setSamplingMethod(eSamplingType);
 
 signals:
 

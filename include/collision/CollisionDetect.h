@@ -48,6 +48,9 @@ private:
     // Box-plane collision test
     void collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1);
 
+    // Box-plane collision test - placing contact points in a regular grid
+    void collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* body1);
+
     // Box-SDF collision test
     void collisionDetectBoxSdf(RigidBody* body0, RigidBody* body1);
 

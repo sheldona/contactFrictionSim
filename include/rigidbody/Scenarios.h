@@ -31,6 +31,37 @@ public:
         rigidBodySystem.addBody(body2);
     }
 
+    // Box on a plane
+    //
+    static void createBoxOnInclinedPlane(RigidBodySystem& rigidBodySystem)
+    {
+        rigidBodySystem.clear();
+
+        auto angle = M_PI * 22 / 180;
+        auto sinA = std::sin(angle / 2);
+        auto cosA = std::cos(angle / 2);
+        printf("sinA %f", sinA);
+        printf("cosA %f", cosA);
+
+        Eigen::Quaternionf q;
+        q.x() = 0 * sinA;
+        q.y() = 0 * sinA;
+        q.z() = 1 * sinA;
+        q.w() = cosA;
+        q.normalize();
+
+        RigidBody* body0 = new RigidBody(1.0f, new Plane(Eigen::Vector3f(0.0f, 1.0f, 0.0f)), "resources/plane.obj");
+        body0->fixed = true; 
+        body0->q = q;
+
+        RigidBody* body1 = new RigidBody(1.0f, new Box(Eigen::Vector3f(1.0f, 1.0f, 1.0f)), "resources/box.obj");
+        body1->q = q;
+        body1->x = Eigen::Vector3f(0.0f, 0.52f, 0.0f);
+
+        rigidBodySystem.addBody(body0);
+        rigidBodySystem.addBody(body1);
+    }
+
     // Stack of boxes and spheres.
     //
     static void createBoxBallStack(RigidBodySystem& rigidBodySystem)

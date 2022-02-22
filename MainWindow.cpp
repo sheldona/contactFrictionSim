@@ -19,7 +19,7 @@ MainWindow::~MainWindow()
 void MainWindow::addViewer(SimViewer* viewer)
 {
     // Set the viewer
-    QLayout *layout = new QHBoxLayout;
+    QLayout* layout = new QHBoxLayout;
     layout->addWidget(viewer);
     ui->frame->setLayout(layout);
 
@@ -37,9 +37,14 @@ void MainWindow::addViewer(SimViewer* viewer)
     connect(ui->bppRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSolver(kBPP); });
 
     connect(ui->boxPlane, SIGNAL(clicked()), viewer, SLOT(createBoxOnPlane()));
+    connect(ui->boxInclinedPlane, SIGNAL(clicked()), viewer, SLOT(createBoxOnInclinedPlane()));
     connect(ui->boxBallStack, SIGNAL(clicked()), viewer, SLOT(createBoxBallStack()));
     connect(ui->bunnies, SIGNAL(clicked()), viewer, SLOT(createBunnies()));
     connect(ui->marblesBox, SIGNAL(clicked()), viewer, SLOT(createMarbleBox()));
+
+    connect(ui->cornersRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kCorners); });
+    connect(ui->gridRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kGrid); });
+    connect(ui->samplingRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kSampling); });
 
 
     // Update status bar message
