@@ -40,8 +40,6 @@ public:
         auto angle = M_PI * 22 / 180;
         auto sinA = std::sin(angle / 2);
         auto cosA = std::cos(angle / 2);
-        printf("sinA %f", sinA);
-        printf("cosA %f", cosA);
 
         Eigen::Quaternionf q;
         q.x() = 0 * sinA;
