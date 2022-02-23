@@ -46,7 +46,7 @@ void RigidBodySystem::addBody(RigidBody *_b)
 
 void RigidBodySystem::step(float dt)
 {
-    const float sigma = 0.1f;
+    const float sigma = 1.0f;
     std::default_random_engine de(1); //seed
     std::normal_distribution<float> gaussian(m_mu, sigma);
 
