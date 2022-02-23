@@ -58,6 +58,7 @@ public slots:
 
     void setSolver(eSolverType);
     void setSamplingMethod(eSamplingType);
+    void setFrictionDistribution(eFrictionDistribution);
 
 signals:
 

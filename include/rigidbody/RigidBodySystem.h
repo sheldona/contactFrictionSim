@@ -15,6 +15,7 @@ typedef std::function<void()> ResetFunc;
 
 enum eSolverType { kPGS = 0, kBPP };
 enum eSamplingType { kCorners = 0, kGrid, kSampling };
+enum eFrictionDistribution { kUniform = 0, kGaussian, kRamp, kStep };
 
 class RigidBodySystem
 {
@@ -53,6 +54,8 @@ public:
     void setSolverType(eSolverType _solverType) { m_solverType = _solverType; }
     void setSamplingType(eSamplingType _samplingType) { m_samplingType = _samplingType; }
     eSamplingType getSamplingType() { return m_samplingType; }
+    void setFrictionDistribution(eFrictionDistribution _frictionDistribution) { m_frictionDistribution = _frictionDistribution; }
+    eFrictionDistribution getFrictionDistribution() { return m_frictionDistribution; }
 
     // Callbacks.
     void setPreStepFunc(PreStepFunc _func) { m_preStepFunc = _func; }
@@ -69,6 +72,7 @@ private:
     eSolverType m_solverType;
     int m_frame;
     eSamplingType m_samplingType;
+    eFrictionDistribution m_frictionDistribution;
 
     // Compute the world-space inverse inertia matrices for all bodies.
     //  This function also updates the rotation matrices using the quaternions.

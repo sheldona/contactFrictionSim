@@ -483,6 +483,11 @@ void SimViewer::setSamplingMethod(eSamplingType _samplingType)
     m_rigidBodySystem->setSamplingType(_samplingType);
 }
 
+void SimViewer::setFrictionDistribution(eFrictionDistribution _frictionDistribution)
+{
+    m_rigidBodySystem->setFrictionDistribution(_frictionDistribution);
+}
+
 void SimViewer::setMaxIterations(int _maxIter)
 {
     m_rigidBodySystem->setSolverIterations(_maxIter);

@@ -7,6 +7,8 @@
 #include "solvers/SolverBoxPGS.h"
 #include "solvers/SolverBoxBPP.h"
 
+#include <random>
+
 namespace Eigen
 {
     typedef Matrix<float, 6, 1, ColMajor> Vector6f;
@@ -44,6 +46,12 @@ void RigidBodySystem::addBody(RigidBody *_b)
 
 void RigidBodySystem::step(float dt)
 {
+    const float sigma = 0.1f;
+    std::default_random_engine de(1); //seed
+    std::normal_distribution<float> gaussian(m_mu, sigma);
+
+    const float slope = 1.0f;
+
     // Initialize the system.
     // Apply gravitional forces and reset angular forces.
     // Cleanup contacts from the previous time step.
@@ -76,6 +84,25 @@ void RigidBodySystem::step(float dt)
         c->k = m_contactStiffness;
         c->b = m_contactDamping;
         c->mu = m_mu;
+
+        if (m_frictionDistribution == kGaussian)
+        {
+            // sample according to a Gaussian distrubition with mean=m_mu
+            c->mu = gaussian(de);
+        }
+        else if (m_frictionDistribution == kRamp)
+        {
+            // interpolate according to the z-coordinate (isoline on plane)
+            // m_mu is used at z=0
+            c->mu = c->p[2] * slope + m_mu;
+        }
+        else if (m_frictionDistribution == kStep)
+        {
+            // step function: 
+            // z<=0 -> c->mu = 0.0
+            // z>0  -> c->mu = m_mu
+            c->mu = (c->p[2] > 0) * m_mu + (c->p[2] <= 0) * 0.01f;
+        }
     }
 
     for(auto b : m_bodies)

@@ -46,6 +46,11 @@ void MainWindow::addViewer(SimViewer* viewer)
     connect(ui->gridRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kGrid); });
     connect(ui->samplingRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kSampling); });
 
+    connect(ui->uniformRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionDistribution(kUniform); });
+    connect(ui->gaussianRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionDistribution(kGaussian); });
+    connect(ui->rampRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionDistribution(kRamp); });
+    connect(ui->stepRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionDistribution(kStep); });
+
 
     // Update status bar message
     connect(viewer, SIGNAL(statusMessageChanged(QString)), ui->statusBar, SLOT(showMessage(QString)));
