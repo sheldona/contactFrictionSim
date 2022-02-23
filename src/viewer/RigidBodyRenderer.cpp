@@ -250,7 +250,7 @@ void RigidBodyRenderer::init()
     {
         // Fill VBO with vertices data
         //  vert positions + normals
-        contactVerts.resize(16*MAX_CONTACTS);
+        contactVerts.resize(24*MAX_CONTACTS);
         std::fill(contactVerts.begin(), contactVerts.end(), 0.0f);
 
         // Init shaders
@@ -365,30 +365,48 @@ void RigidBodyRenderer::drawContacts(const QMatrix4x4& projectionMatrix, const Q
     const auto& contacts = m_system->getContacts();
     const GLuint numContacts = (MAX_CONTACTS < contacts.size()) ? MAX_CONTACTS : contacts.size();
 
-    // Normal axes
+    // Normal axes - force magnitude
     int offset = 0;
     for(int i = 0; i < numContacts; ++i)
     {
         const Contact& c = *contacts[i];
-        const Eigen::Vector3f p2 = c.p + 0.5f*c.n;
+        const Eigen::Vector3f p2 = c.p + c.lambda[0] * 10.0f * c.n;
         memcpy(&contactVerts[offset+6*i], c.p.data(), sizeof(GLfloat)*3);
         memcpy(&contactVerts[offset+6*i+3], p2.data(), sizeof(GLfloat)*3);
     }
-    // First tangent axes
+    // First tangent axes - force magnitude
     offset += 6*numContacts;
     for(int i = 0; i < numContacts; ++i)
     {
         const Contact& c = *contacts[i];
-        const Eigen::Vector3f p2 = c.p + 0.5f*c.t1;
+        const Eigen::Vector3f p2 = c.p + c.lambda[1] * 10.0f * c.t1;
         memcpy(&contactVerts[offset+6*i], c.p.data(), sizeof(GLfloat)*3);
         memcpy(&contactVerts[offset+6*i+3], p2.data(), sizeof(GLfloat)*3);
     }
-    // Second tangent axes
+    // Second tangent axes - force magnitude
     offset += 6*numContacts;
     for(int i = 0; i < numContacts; ++i)
     {
         const Contact& c = *contacts[i];
-        const Eigen::Vector3f p2 = c.p + 0.5f*c.t2;
+        const Eigen::Vector3f p2 = c.p + c.lambda[2] * 10.0f * c.t2;
+        memcpy(&contactVerts[offset+6*i], c.p.data(), sizeof(GLfloat)*3);
+        memcpy(&contactVerts[offset+6*i+3], p2.data(), sizeof(GLfloat)*3);
+    }
+    // First tangent axes - friction bound magnitude
+    offset += 6 * numContacts;
+    for (int i = 0; i < numContacts; ++i)
+    {
+        const Contact& c = *contacts[i];
+        const Eigen::Vector3f p2 = c.p + c.mu * c.t1 * 0.2;
+        memcpy(&contactVerts[offset + 6 * i], c.p.data(), sizeof(GLfloat) * 3);
+        memcpy(&contactVerts[offset + 6 * i + 3], p2.data(), sizeof(GLfloat) * 3);
+    }
+    // Second tangent axes - friction bound magnitude
+    offset += 6*numContacts;
+    for(int i = 0; i < numContacts; ++i)
+    {
+        const Contact& c = *contacts[i];
+        const Eigen::Vector3f p2 = c.p + c.mu * c.t2 * 0.2;
         memcpy(&contactVerts[offset+6*i], c.p.data(), sizeof(GLfloat)*3);
         memcpy(&contactVerts[offset+6*i+3], p2.data(), sizeof(GLfloat)*3);
     }
@@ -412,10 +430,16 @@ void RigidBodyRenderer::drawContacts(const QMatrix4x4& projectionMatrix, const Q
     // Draw normal axes
     m_gl->glUniform3f(m_contactShader.KdLoc, 0.1f, 0.1f, 1.0f);
     m_gl->glDrawArrays(GL_LINES, 0, 2*numContacts);
-    // Draw t1 axes
+    // Draw t1 axes - friction bound
+    m_gl->glUniform3f(m_contactShader.KdLoc, 0.25f, 0.1f, 0.1f);
+    m_gl->glDrawArrays(GL_LINES, 6 * numContacts, 2 * numContacts);
+    // Draw t2 axes - friction bound
+    m_gl->glUniform3f(m_contactShader.KdLoc, 0.1f, 0.25f, 0.1f);
+    m_gl->glDrawArrays(GL_LINES, 8 * numContacts, 2 * numContacts);
+    // Draw t1 axes - force magnitude
     m_gl->glUniform3f(m_contactShader.KdLoc, 1.0f, 0.1f, 0.1f);
     m_gl->glDrawArrays(GL_LINES, 2*numContacts, 2*numContacts);
-    // Draw t2 axes
+    // Draw t2 axes - force magnitude
     m_gl->glUniform3f(m_contactShader.KdLoc, 0.1f, 1.0f, 0.1f);
     m_gl->glDrawArrays(GL_LINES, 4*numContacts, 2*numContacts);
 
