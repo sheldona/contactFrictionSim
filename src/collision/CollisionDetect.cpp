@@ -4,6 +4,8 @@
 #include "rigidbody/RigidBody.h"
 #include "rigidbody/RigidBodySystem.h"
 
+static const unsigned int n_points = 8;
+
 namespace
 {
     // Plane-point collision test.
@@ -133,6 +135,10 @@ void CollisionDetect::detectCollisions()
                 {
                     collisionDetectBoxPlaneGrid(body0, body1);
                 }
+                else if (m_rigidBodySystem->getSamplingType() == kSampling)
+                {
+                    collisionDetectBoxPlaneRandom(body0, body1);
+                }
             }
             // Test for plane-box collision (order swap)
             else if ( body0->geometry->getType() == kPlane &&
@@ -145,6 +151,10 @@ void CollisionDetect::detectCollisions()
                 else if (m_rigidBodySystem->getSamplingType() == kGrid)
                 {
                     collisionDetectBoxPlaneGrid(body1, body0);
+                }
+                else if (m_rigidBodySystem->getSamplingType() == kSampling)
+                {
+                    collisionDetectBoxPlaneRandom(body1, body0);
                 }
             }
             // Test for SDF-box collision
@@ -289,16 +299,15 @@ void CollisionDetect::collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* b
     Plane* plane = dynamic_cast<Plane*>(body1->geometry.get());
     const Eigen::Vector3f pplane = body1->x;
     const Eigen::Vector3f nplane = body1->R * plane->normal;
-    const unsigned int num = 4;
-    const float dist[3] = { box->dim(0) / (num - 1), box->dim(1) / (num - 1),  box->dim(2) / (num - 1) };
-    Eigen::Vector3f plocal[num][num][num];
-    for (int i = 0; i < num; ++i)
+    const float dist[3] = { box->dim(0) / (n_points - 1), box->dim(1) / (n_points - 1),  box->dim(2) / (n_points - 1) };
+    Eigen::Vector3f plocal[n_points][n_points][n_points];
+    for (int i = 0; i < n_points; ++i)
     {
         const float startX = -0.5f * box->dim(0);
-        for (int j = 0; j < num; ++j)
+        for (int j = 0; j < n_points; ++j)
         {
             const float startY = -0.5f * box->dim(1);
-            for (int k = 0; k < num; ++k)
+            for (int k = 0; k < n_points; ++k)
             {
                 const float startZ = -0.5f * box->dim(2);
                 plocal[i][j][k] = Eigen::Vector3f(startX + i * dist[0], startY + j * dist[1] , startZ + k * dist[2]);
@@ -307,23 +316,78 @@ void CollisionDetect::collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* b
     }
 
     // generate contacts at the corners of the box
-    unsigned int count = 0;
-    for (int i = 0; i < num; ++i)
+    for (int i = 0; i < n_points; ++i)
     {
-        for (int j = 0; j < num; ++j)
+        for (int j = 0; j < n_points; ++j)
         {
-            for (int k = 0; k < num; ++k)
+            for (int k = 0; k < n_points; ++k)
             {
                 const Eigen::Vector3f pbox = body0->R * plocal[i][j][k] + body0->x;
                 float phi;
                 if (collisionDetectPointPlane(pbox, pplane, nplane, phi))
                 {
                     m_contacts.push_back(new Contact(body0, body1, pbox, nplane, phi));
-                    ++count;
                 }
             }
         }
     }
+}
+
+void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody* body1)
+{
+    Box* box = dynamic_cast<Box*>(body0->geometry.get());
+    Plane* plane = dynamic_cast<Plane*>(body1->geometry.get());
+    const Eigen::Vector3f pplane = body1->x;
+    const Eigen::Vector3f nplane = body1->R * plane->normal;
+    const unsigned int n_samples = n_points * n_points;
+    const Eigen::Vector3f plocal[8] = {
+        0.5f * Eigen::Vector3f(-box->dim(0), -box->dim(1), -box->dim(2)),
+        0.5f * Eigen::Vector3f(-box->dim(0), -box->dim(1),  box->dim(2)),
+        0.5f * Eigen::Vector3f(-box->dim(0),  box->dim(1), -box->dim(2)),
+        0.5f * Eigen::Vector3f(-box->dim(0),  box->dim(1),  box->dim(2)),
+        0.5f * Eigen::Vector3f(box->dim(0), -box->dim(1), -box->dim(2)),
+        0.5f * Eigen::Vector3f(box->dim(0), -box->dim(1),  box->dim(2)),
+        0.5f * Eigen::Vector3f(box->dim(0),  box->dim(1), -box->dim(2)),
+        0.5f * Eigen::Vector3f(box->dim(0),  box->dim(1),  box->dim(2))
+    };
+
+    Eigen::Vector3f pspan[8]; // contact points to span the contact plane
+    unsigned int count = 0;
+    for (unsigned int i = 0; i < 8; ++i)
+    {
+        const Eigen::Vector3f pbox = body0->R * plocal[i] + body0->x;
+        float phi;
+        if (collisionDetectPointPlane(pbox, pplane, nplane, phi))
+        {
+            pspan[count++] = pbox;
+        }
+    }
+
+    // select basis vectors for interpolation
+    Eigen::Vector3f vec[2] = { pspan[1] - pspan[0], pspan[2] - pspan[0] };
+    // check that the scalar product is near 0 (orthogonal), otherwise pick different point
+    if (count > 3 && std::fabs(vec[0].dot(vec[1])) > 0.0001f)
+    {
+        vec[1] = pspan[3] - pspan[0];
+    }
+
+    for (unsigned int i = 0; i < n_samples; ++i)
+    {
+        // the resulting contact point is a linear combination of the basis vectors with random factors
+        Eigen::Vector3f presult = pspan[0];
+        for (unsigned int j = 0; j < 2; ++j)
+        {
+            presult += ((float)rand() / (RAND_MAX)) * vec[j];
+        }
+        
+        // create a contact point if intersecting
+        float phi;
+        if (collisionDetectPointPlane(presult, pplane, nplane, phi))
+        {
+            m_contacts.push_back(new Contact(body0, body1, presult, nplane, phi));
+        }
+    }
+
 }
 
 void CollisionDetect::collisionDetectBoxSdf(RigidBody* body0, RigidBody* body1)
