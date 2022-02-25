@@ -54,7 +54,7 @@ public:
 
         RigidBody* body1 = new RigidBody(1.0f, new Box(Eigen::Vector3f(1.0f, 1.0f, 1.0f)), "resources/box.obj");
         body1->q = q;
-        body1->x = Eigen::Vector3f(0.0f, 0.52f, 0.0f);
+        body1->x = Eigen::Vector3f(0.0f, 0.54f, 0.0f);
 
         rigidBodySystem.addBody(body0);
         rigidBodySystem.addBody(body1);
