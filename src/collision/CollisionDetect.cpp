@@ -363,28 +363,61 @@ void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody*
         }
     }
 
-    // select basis vectors for interpolation
-    Eigen::Vector3f vec[2] = { pspan[1] - pspan[0], pspan[2] - pspan[0] };
-    // check that the scalar product is near 0 (orthogonal), otherwise pick different point
-    if (count > 3 && std::fabs(vec[0].dot(vec[1])) > 0.0001f)
-    {
-        vec[1] = pspan[3] - pspan[0];
-    }
+    // split the contact face into two triangles
+    // select nodes for the first triangle at random
+    std::array<std::array<Eigen::Vector3f, 3>, 5> triangles;
+    triangles[0] = { pspan[0], pspan[1], pspan[2] };
 
-    for (unsigned int i = 0; i < n_samples; ++i)
+    // find the point farthest from p3
+    float dist[3] = {(pspan[3] - pspan[0]).norm(), (pspan[3] - pspan[1]).norm(), (pspan[3] - pspan[2]).norm()};
+    auto result = std::max_element(dist, dist + 3);
+    const int argmax = std::distance(dist, result);
+    // create the 2nd triangle
+    Eigen::Vector3f tempTriangle[3] = { pspan[3], pspan[(argmax + 1) % 3], pspan[(argmax + 2) % 3] };
+
+    // split the 2nd triangle into 4 sub-triangles
+    // first compute the midpoints
+    Eigen::Vector3f midpoints[3] = {
+        0.5 * (tempTriangle[0] + tempTriangle[1]),
+        0.5 * (tempTriangle[0] + tempTriangle[2]),
+        0.5 * (tempTriangle[1] + tempTriangle[2])
+    };
+
+    // set up the other 3 triangles
+    triangles[1] = { tempTriangle[0], midpoints[0], midpoints[1] };
+    triangles[2] = { tempTriangle[1], midpoints[0], midpoints[2] };
+    triangles[3] = { tempTriangle[2], midpoints[1], midpoints[2] };
+    triangles[4] = { midpoints[0], midpoints[1], midpoints[2]};
+
+    // assign barycentric coordinates randomly 
+    // project them back into the original triangles
+
+    // loop over all triangles
+    for (int i = 0; i < 5; ++i)
     {
-        // the resulting contact point is a linear combination of the basis vectors with random factors
-        Eigen::Vector3f presult = pspan[0];
-        for (unsigned int j = 0; j < 2; ++j)
+        // loop over all required sample points
+        for (unsigned int j = 0; j < n_samples; ++j)
         {
-            presult += ((float)rand() / (RAND_MAX)) * vec[j];
-        }
-        
-        // create a contact point if intersecting
-        float phi;
-        if (collisionDetectPointPlane(presult, pplane, nplane, phi))
-        {
-            m_contacts.push_back(new Contact(body0, body1, presult, nplane, phi));
+            Eigen::Vector3f p = Eigen::Vector3f::Zero(); // sampled contact point
+
+            // barycentric weights, randomly sampled
+            float weights[3];
+            weights[0] = ((float)rand() / (RAND_MAX));
+            weights[1] = ((float)rand() / (RAND_MAX)) * (1.0f - weights[0]);
+            weights[2] = 1.0f - weights[0] - weights[1];
+
+            // project the contact point back into 3D
+            for (int k = 0; k < 3; ++k)
+            {
+                p += weights[k] * triangles[i][k];
+            }
+
+			// create a contact point if intersecting
+			float phi;
+			if (collisionDetectPointPlane(p, pplane, nplane, phi))
+			{
+				m_contacts.push_back(new Contact(body0, body1, p, nplane, phi));
+			}
         }
     }
 
