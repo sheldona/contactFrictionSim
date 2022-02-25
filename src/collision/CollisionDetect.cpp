@@ -22,7 +22,7 @@ namespace
     static inline bool collisionDetectPointPlane(const Eigen::Vector3f& p, const Eigen::Vector3f& plane_p, const Eigen::Vector3f& plane_n, float& phi)
     {
         const float dp = (p - plane_p).dot(plane_n);
-        if (dp < 0.0f)
+        if (dp < 1e-3f)
         {
             phi = std::min(0.0f, dp);
             return true;
