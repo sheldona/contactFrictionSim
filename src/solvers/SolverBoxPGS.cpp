@@ -5,6 +5,7 @@
 #include "rigidbody/RigidBodySystem.h"
 
 #include <Eigen/Dense>
+#include <random>
 
 
 namespace
@@ -140,20 +141,43 @@ void SolverBoxPGS::solve(float h)
         //
         for(int iter = 0; iter < m_maxIter; ++iter)
         {
+            // randomize the order of contacts in the PGS solver
+            std::vector<int> idx(numContacts);
+            for (int i = 0; i < numContacts; ++i)
+            {
+                idx[i] = i;
+            }
+            random_shuffle(idx.begin(), idx.end());
+            
             // For each contact, compute an updated value of contacts[i]->lambda
             //      using matrix-free pseudo-code provided in the course notes.
             //
-            for(int i = 0; i < numContacts; ++i)
+            for (int i = 0; i < numContacts; ++i)
             {
-                Contact* c = contacts[i];
+                Contact* c = contacts[idx[i]];
 
                 // Initialize current solution as x = b[i]
-                Eigen::VectorXf x = b[i];
+                Eigen::VectorXf x = b[idx[i]];
 
                 accumulateCoupledContacts(c, c->J0Minv, c->body0, x);
                 accumulateCoupledContacts(c, c->J1Minv, c->body1, x);
-                solveContact(Acontactii[i], x, c->lambda, c->mu);
+                solveContact(Acontactii[idx[i]], x, c->lambda, c->mu);
             }
+
+            //// For each contact, compute an updated value of contacts[i]->lambda
+            ////      using matrix-free pseudo-code provided in the course notes.
+            ////
+            //for(int i = 0; i < numContacts; ++i)
+            //{
+            //    Contact* c = contacts[i];
+
+            //    // Initialize current solution as x = b[i]
+            //    Eigen::VectorXf x = b[i];
+
+            //    accumulateCoupledContacts(c, c->J0Minv, c->body0, x);
+            //    accumulateCoupledContacts(c, c->J1Minv, c->body1, x);
+            //    solveContact(Acontactii[i], x, c->lambda, c->mu);
+            //}
         }
     }
 }
