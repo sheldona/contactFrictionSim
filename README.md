@@ -60,7 +60,6 @@ The **CollisionDetect.h** class handles collision detection and contact generati
  * Spheres
  * Planes
  * Boxes
- * 
 
 Contains collision tests are implemented for the following geometry pairs:
   * Sphere-sphere
@@ -69,10 +68,9 @@ Contains collision tests are implemented for the following geometry pairs:
   * Plane-box
   * SDF-box
   * SDF-SDF
-  * Box-box (coming soon!)
+  * Box-box (TODO)
   
 ### contact/
 
 Implementations of various contact and friction cone models:
  * **ContactBLCP.h**: Boxed friction cone
- * ... more to come!
