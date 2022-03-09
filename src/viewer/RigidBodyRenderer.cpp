@@ -428,7 +428,7 @@ void RigidBodyRenderer::drawContacts(const QMatrix4x4& projectionMatrix, const Q
     m_gl->glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // Draw normal axes
-    m_gl->glUniform3f(m_contactShader.KdLoc, 0.1f, 0.1f, 1.0f);
+    m_gl->glUniform3f(m_contactShader.KdLoc, 1.0f, 1.0f, 0.25f);
     m_gl->glDrawArrays(GL_LINES, 0, 2*numContacts);
     // Draw t1 axes - friction bound
     m_gl->glUniform3f(m_contactShader.KdLoc, 0.25f, 0.1f, 0.1f);
