@@ -140,7 +140,8 @@ void CollisionDetect::detectCollisions()
                 }
                 else if (m_rigidBodySystem->getSamplingType() == kSampling)
                 {
-                    collisionDetectBoxPlaneRandom(body0, body1);
+                    collisionDetectBoxPlane(body0, body1); // super-contact point
+                    collisionDetectBoxPlaneRandom(body0, body1); // sub-contact points
                 }
             }
             // Test for plane-box collision (order swap)
@@ -157,7 +158,8 @@ void CollisionDetect::detectCollisions()
                 }
                 else if (m_rigidBodySystem->getSamplingType() == kSampling)
                 {
-                    collisionDetectBoxPlaneRandom(body1, body0);
+                    collisionDetectBoxPlane(body1, body0); // super-contact point
+                    collisionDetectBoxPlaneRandom(body1, body0); // sub-contact points
                 }
             }
             // Test for SDF-box collision
@@ -379,9 +381,11 @@ void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody*
         }
     }
 
+    const int numTriangles = 5;
+
     // split the contact face into two triangles
     // select nodes for the first triangle at random
-    std::array<std::array<Eigen::Vector3f, 3>, 5> triangles;
+    std::array<std::array<Eigen::Vector3f, 3>, numTriangles> triangles;
     triangles[0] = { pspan[0], pspan[1], pspan[2] };
 
     // find the point farthest from p3
@@ -408,31 +412,19 @@ void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody*
     // assign barycentric coordinates randomly 
     // project them back into the original triangles
 
+    // total number of points given by num triangles x n_points
     // loop over all triangles
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < numTriangles; ++i)
     {
         // loop over all required sample points
-        for (unsigned int j = 0; j < n_samples; ++j)
+        for (unsigned int j = 0; j < n_points; ++j)
         {
-            Eigen::Vector3f p = Eigen::Vector3f::Zero(); // sampled contact point
-
-            // barycentric weights, randomly sampled
-            float weights[3];
-            weights[0] = ((float)rand() / (RAND_MAX));
-            weights[1] = ((float)rand() / (RAND_MAX)) * (1.0f - weights[0]);
-            weights[2] = 1.0f - weights[0] - weights[1];
-
-            // project the contact point back into 3D
-            for (int k = 0; k < 3; ++k)
-            {
-                p += weights[k] * triangles[i][k];
-            }
-
-			// create a contact point if intersecting
+			// create a subcontact point if intersecting
+            Eigen::Vector3f p = generateSamplePoint(triangles[i]);
 			float phi;
 			if (collisionDetectPointPlane(p, pplane, nplane, phi))
 			{
-				m_contacts.push_back(new Contact(body0, body1, p, nplane, phi));
+				m_subContacts.push_back(new Contact(body0, body1, p, nplane, phi));
 			}
         }
     }
@@ -508,4 +500,22 @@ void CollisionDetect::collisionDetectSdfSdf(RigidBody* body0, RigidBody* body1)
             m_contacts.push_back( new Contact(body1, body0, p1, nworld, phi) );
         }
     }
+}
+
+Eigen::Vector3f CollisionDetect::generateSamplePoint(const std::array<Eigen::Vector3f, 3>& vertices)
+{
+    Eigen::Vector3f p = Eigen::Vector3f::Zero(); // sampled contact point
+
+    // barycentric weights, randomly sampled
+    float weights[3];
+    weights[0] = ((float)rand() / (RAND_MAX));
+    weights[1] = ((float)rand() / (RAND_MAX)) * (1.0f - weights[0]);
+    weights[2] = 1.0f - weights[0] - weights[1];
+
+    // project the contact point back into 3D
+    for (int k = 0; k < 3; ++k)
+    {
+        p += weights[k] * vertices[k];
+    }
+    return p;
 }
