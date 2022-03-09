@@ -51,6 +51,7 @@ public:
     void setContactStiffness(float _stiffness) { m_contactStiffness = _stiffness; }
     void setContactDamping(float _damping) { m_contactDamping = _damping; }
     void setFrictionCoefficient(float _mu) { m_mu = _mu; }
+    float getFrictionCoefficient() { return m_mu; }
     void setSolverIterations(int _solverIter) { m_solverIter = _solverIter; }
 
     void setSolverType(eSolverType _solverType) { m_solverType = _solverType; }
@@ -82,6 +83,10 @@ private:
 
     // Compute the constraint forces.
     void calcConstraintForces(float dt);
+
+    // Compute the friction coefficient based on the baseline coefficient m_mu
+    // the friction distribution m_frictionDistribuation, and the contact position pos
+    float computeFrictionCoefficient(const Eigen::Vector3f& pos);
 
     PreStepFunc m_preStepFunc;
     ResetFunc m_resetFunc;
