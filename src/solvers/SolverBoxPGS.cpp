@@ -95,6 +95,9 @@ void SolverBoxPGS::solve(float h)
     std::vector<Contact*>& contacts = m_rigidBodySystem->getContacts();
     const int numContacts = contacts.size();
 
+    std::vector<Contact*>& subContacts = m_rigidBodySystem->getSubContacts();
+    const int numSubContacts = subContacts.size();
+
     // Build array of 3x3 diagonal matrices, one for each contact.
     // 
     std::vector<Eigen::Matrix3f> Acontactii;
@@ -141,43 +144,68 @@ void SolverBoxPGS::solve(float h)
         //
         for(int iter = 0; iter < m_maxIter; ++iter)
         {
-            // randomize the order of contacts in the PGS solver
-            std::vector<int> idx(numContacts);
-            for (int i = 0; i < numContacts; ++i)
+            const bool randomOrder = true;
+            if (randomOrder)
             {
-                idx[i] = i;
+                // randomize the order of contacts in the PGS solver
+                std::vector<int> idx(numContacts);
+                for (int i = 0; i < numContacts; ++i)
+                {
+                    idx[i] = i;
+                }
+                random_shuffle(idx.begin(), idx.end());
+
+                // For each contact, compute an updated value of contacts[i]->lambda
+                // using matrix-free pseudo-code provided in the course notes.
+                //
+                for (int i = 0; i < numContacts; ++i)
+                {
+                    Contact* c = contacts[idx[i]];
+
+                    if (numSubContacts > 0)
+                    {
+                        // randomly draw samples from the sub-contacts to compute a better
+                        // estimate for the friction coefficients for the super contacts
+                        // normalized weighting factors (invDist / totalInvDist) must add up to 1.0
+                        const int numSamples = 10;
+                        float mu = 0.0f;
+                        float totalInvDist = 0.0f;
+                        for (int j = 0; j < numSamples; ++j)
+                        {
+                            const int id = rand() % numSubContacts;
+                            const auto sub = subContacts[id];
+                            const auto invDist = 1.0f / (sub->p - c->p).norm();
+                            mu += invDist * sub->mu;
+                            totalInvDist += invDist;
+                        }
+                        c->mu = mu / totalInvDist;
+                    }
+
+                    // Initialize current solution as x = b[i]
+                    Eigen::VectorXf x = b[idx[i]];
+
+                    accumulateCoupledContacts(c, c->J0Minv, c->body0, x);
+                    accumulateCoupledContacts(c, c->J1Minv, c->body1, x);
+                    solveContact(Acontactii[idx[i]], x, c->lambda, c->mu);
+                }
             }
-            random_shuffle(idx.begin(), idx.end());
-            
-            // For each contact, compute an updated value of contacts[i]->lambda
-            //      using matrix-free pseudo-code provided in the course notes.
-            //
-            for (int i = 0; i < numContacts; ++i)
+            else
             {
-                Contact* c = contacts[idx[i]];
+                // For each contact, compute an updated value of contacts[i]->lambda
+                //      using matrix-free pseudo-code provided in the course notes.
+                //
+                for(int i = 0; i < numContacts; ++i)
+                {
+                    Contact* c = contacts[i];
 
-                // Initialize current solution as x = b[i]
-                Eigen::VectorXf x = b[idx[i]];
+                    // Initialize current solution as x = b[i]
+                    Eigen::VectorXf x = b[i];
 
-                accumulateCoupledContacts(c, c->J0Minv, c->body0, x);
-                accumulateCoupledContacts(c, c->J1Minv, c->body1, x);
-                solveContact(Acontactii[idx[i]], x, c->lambda, c->mu);
+                    accumulateCoupledContacts(c, c->J0Minv, c->body0, x);
+                    accumulateCoupledContacts(c, c->J1Minv, c->body1, x);
+                    solveContact(Acontactii[i], x, c->lambda, c->mu);
+                }
             }
-
-            //// For each contact, compute an updated value of contacts[i]->lambda
-            ////      using matrix-free pseudo-code provided in the course notes.
-            ////
-            //for(int i = 0; i < numContacts; ++i)
-            //{
-            //    Contact* c = contacts[i];
-
-            //    // Initialize current solution as x = b[i]
-            //    Eigen::VectorXf x = b[i];
-
-            //    accumulateCoupledContacts(c, c->J0Minv, c->body0, x);
-            //    accumulateCoupledContacts(c, c->J1Minv, c->body1, x);
-            //    solveContact(Acontactii[i], x, c->lambda, c->mu);
-            //}
         }
     }
 }
