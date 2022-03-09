@@ -40,7 +40,9 @@ public:
 
     // Accessors for the contact array.
     const std::vector<Contact*>& getContacts() const;
-    std::vector<Contact*>& getContacts();
+    std::vector<Contact*>& getContacts();    
+    const std::vector<Contact*>& getSubContacts() const;
+    std::vector<Contact*>& getSubContacts();
 
     // Frame counter.
     int getFrameCount() const { return m_frame; }

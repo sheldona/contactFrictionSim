@@ -178,6 +178,16 @@ std::vector<Contact*>& RigidBodySystem::getContacts()
     return m_collisionDetect->getContacts();
 }
 
+const std::vector<Contact*>& RigidBodySystem::getSubContacts() const
+{
+    return m_collisionDetect->getSubContacts();
+}
+
+std::vector<Contact*>& RigidBodySystem::getSubContacts()
+{
+    return m_collisionDetect->getSubContacts();
+}
+
 void RigidBodySystem::calcConstraintForces(float dt)
 {
     // Solve for the constraint forces lambda

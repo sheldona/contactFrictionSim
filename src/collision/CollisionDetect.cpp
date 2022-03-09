@@ -79,7 +79,10 @@ namespace
     }
 }
 
-CollisionDetect::CollisionDetect(RigidBodySystem* rigidBodySystem) : m_rigidBodySystem(rigidBodySystem)
+CollisionDetect::CollisionDetect(RigidBodySystem* rigidBodySystem) 
+    : m_rigidBodySystem(rigidBodySystem)
+    , m_contacts()
+    , m_subContacts()
 {
 
 }
@@ -199,6 +202,12 @@ void CollisionDetect::computeContactJacobians()
         c->computeContactFrame( Eigen::Vector3f(1,0,0) );
         c->computeJacobian();
     }
+
+    for (auto c : m_subContacts)
+    {
+        c->computeContactFrame(Eigen::Vector3f(1, 0, 0));
+        c->computeJacobian();
+    }
 }
 
 void CollisionDetect::clear()
@@ -208,6 +217,13 @@ void CollisionDetect::clear()
         delete c;
     }
     m_contacts.clear();
+
+    for (auto c : m_subContacts)
+    {
+        delete c;
+    }
+    m_subContacts.clear();
+
 
     auto bodies = m_rigidBodySystem->getBodies();
     for(auto b : bodies)

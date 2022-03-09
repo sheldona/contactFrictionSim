@@ -33,7 +33,11 @@ public:
 
     const std::vector<Contact*>& getContacts() const { return m_contacts; }
 
-    std::vector<Contact*>& getContacts() { return m_contacts; }
+    std::vector<Contact*>& getContacts() { return m_contacts; }    
+    
+    const std::vector<Contact*>& getSubContacts() const { return m_subContacts; }
+
+    std::vector<Contact*>& getSubContacts() { return m_subContacts; }
 
 private:
 
@@ -60,9 +64,13 @@ private:
     // SDF-SDF collision test
     void collisionDetectSdfSdf(RigidBody* body0, RigidBody* body1);
 
+    // Generate a random sample point given the coordinates of a triangle using barycentric coordinates
+    Eigen::Vector3f generateSamplePoint(const std::array<Eigen::Vector3f, 3>& vertices);
+
 private:
 
     RigidBodySystem* m_rigidBodySystem;
     std::vector<Contact*> m_contacts;
+    std::vector<Contact*> m_subContacts;
 
 };
