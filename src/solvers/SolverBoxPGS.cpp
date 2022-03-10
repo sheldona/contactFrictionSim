@@ -144,7 +144,7 @@ void SolverBoxPGS::solve(float h)
         //
         for(int iter = 0; iter < m_maxIter; ++iter)
         {
-            const bool randomOrder = true;
+            const bool randomOrder = false;
             if (randomOrder)
             {
                 // randomize the order of contacts in the PGS solver
