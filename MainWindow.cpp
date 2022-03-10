@@ -42,9 +42,13 @@ void MainWindow::addViewer(SimViewer* viewer)
     connect(ui->bunnies, SIGNAL(clicked()), viewer, SLOT(createBunnies()));
     connect(ui->marblesBox, SIGNAL(clicked()), viewer, SLOT(createMarbleBox()));
 
-    connect(ui->cornersRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kCorners); });
-    connect(ui->gridRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kGrid); });
-    connect(ui->samplingRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setSamplingMethod(kSampling); });
+    connect(ui->cornersRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setNormalSamplingMethod(kCorners); });
+    connect(ui->gridRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setNormalSamplingMethod(kGrid); });
+    connect(ui->randomRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setNormalSamplingMethod(kRandom); });
+
+    connect(ui->noneRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionSamplingMethod(kNone); });
+    connect(ui->aggCoeffRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionSamplingMethod(kAggCoeff); });
+    connect(ui->ForceEquivRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionSamplingMethod(kForceEquiv); });
 
     connect(ui->uniformRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionDistribution(kUniform); });
     connect(ui->gaussianRadio, &QRadioButton::toggled, viewer, [viewer] { viewer->setFrictionDistribution(kGaussian); });

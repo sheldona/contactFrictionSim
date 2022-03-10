@@ -23,7 +23,7 @@ RigidBodySystem::RigidBodySystem() :
     m_frame(0),
     m_contactStiffness(1e6f), m_contactDamping(1e5f),
     m_mu(0.4f), m_solverIter(20), m_solverType(kPGS), m_preStepFunc(nullptr), m_resetFunc(nullptr),
-    m_samplingType(kCorners)
+    m_normalSamplingType(kCorners)
 {
     m_collisionDetect = std::make_unique<CollisionDetect>(this);
     s_solvers[kPGS] = new SolverBoxPGS(this);

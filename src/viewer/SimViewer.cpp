@@ -478,9 +478,14 @@ void SimViewer::setSolver(eSolverType _solverType)
     m_rigidBodySystem->setSolverType(_solverType);
 }
 
-void SimViewer::setSamplingMethod(eSamplingType _samplingType)
+void SimViewer::setNormalSamplingMethod(eNormalSamplingType _normalSamplingType)
 {
-    m_rigidBodySystem->setSamplingType(_samplingType);
+    m_rigidBodySystem->setNormalSamplingType(_normalSamplingType);
+}
+
+void SimViewer::setFrictionSamplingMethod(eFrictionSamplingType _frictionSamplingType)
+{
+    m_rigidBodySystem->setFrictionSamplingType(_frictionSamplingType);
 }
 
 void SimViewer::setFrictionDistribution(eFrictionDistribution _frictionDistribution)

@@ -50,13 +50,13 @@ private:
     void collisionDetectSphereBox(RigidBody* body0, RigidBody* body1);
 
     // Box-plane collision test
-    void collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1);
+    void collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1, std::vector<Contact*>& contacts);
 
     // Box-plane collision test - placing contact points in a regular grid
-    void collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* body1);
+    void collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* body1, std::vector<Contact*>& contacts);
 
     // Box-plane collision test - placing contact points randomly on the contact surface
-    void collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody* body1);
+    void collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody* body1, std::vector<Contact*>& contacts);
 
     // Box-SDF collision test
     void collisionDetectBoxSdf(RigidBody* body0, RigidBody* body1);

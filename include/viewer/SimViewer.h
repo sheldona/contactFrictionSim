@@ -57,7 +57,8 @@ public slots:
     void createBunnies();
 
     void setSolver(eSolverType);
-    void setSamplingMethod(eSamplingType);
+    void setNormalSamplingMethod(eNormalSamplingType);
+    void setFrictionSamplingMethod(eFrictionSamplingType);
     void setFrictionDistribution(eFrictionDistribution);
 
 signals:

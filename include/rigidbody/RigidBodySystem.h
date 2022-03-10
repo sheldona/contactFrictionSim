@@ -14,7 +14,8 @@ typedef std::function<void(std::vector<RigidBody*>&)> PreStepFunc;
 typedef std::function<void()> ResetFunc;
 
 enum eSolverType { kPGS = 0, kBPP };
-enum eSamplingType { kCorners = 0, kGrid, kSampling };
+enum eNormalSamplingType { kCorners = 0, kGrid, kRandom };
+enum eFrictionSamplingType { kNone = 0, kAggCoeff, kForceEquiv };
 enum eFrictionDistribution { kUniform = 0, kGaussian, kRamp, kStep };
 
 class RigidBodySystem
@@ -55,8 +56,10 @@ public:
     void setSolverIterations(int _solverIter) { m_solverIter = _solverIter; }
 
     void setSolverType(eSolverType _solverType) { m_solverType = _solverType; }
-    void setSamplingType(eSamplingType _samplingType) { m_samplingType = _samplingType; }
-    eSamplingType getSamplingType() { return m_samplingType; }
+    void setNormalSamplingType(eNormalSamplingType _normalSamplingType) { m_normalSamplingType = _normalSamplingType; }
+    eNormalSamplingType getNormalSamplingType() { return m_normalSamplingType; }
+    void setFrictionSamplingType(eFrictionSamplingType _frictionSamplingType) { m_frictionSamplingType = _frictionSamplingType; }
+    eFrictionSamplingType getFrictionSamplingType() { return m_frictionSamplingType; }
     void setFrictionDistribution(eFrictionDistribution _frictionDistribution) { m_frictionDistribution = _frictionDistribution; }
     eFrictionDistribution getFrictionDistribution() { return m_frictionDistribution; }
 
@@ -74,7 +77,8 @@ private:
     int m_solverIter;
     eSolverType m_solverType;
     int m_frame;
-    eSamplingType m_samplingType;
+    eNormalSamplingType m_normalSamplingType;
+    eFrictionSamplingType m_frictionSamplingType;
     eFrictionDistribution m_frictionDistribution;
 
     // Compute the world-space inverse inertia matrices for all bodies.

@@ -130,36 +130,50 @@ void CollisionDetect::detectCollisions()
             else if( body1->geometry->getType() == kPlane &&
                      body0->geometry->getType() == kBox )
             {                
-                if (m_rigidBodySystem->getSamplingType() == kCorners)
+                if (m_rigidBodySystem->getNormalSamplingType() == kCorners)
                 {
-                    collisionDetectBoxPlane(body0, body1);
+                    collisionDetectBoxPlane(body0, body1, m_contacts); // super-contact point
+                    if (m_rigidBodySystem->getFrictionSamplingType() != kNone)
+                    {
+                        collisionDetectBoxPlaneRandom(body0, body1, m_subContacts); // sub-contact points
+                    }
                 }
-                else if (m_rigidBodySystem->getSamplingType() == kGrid)
+                else if (m_rigidBodySystem->getNormalSamplingType() == kGrid)
                 {
-                    collisionDetectBoxPlaneGrid(body0, body1);
+                    collisionDetectBoxPlaneGrid(body0, body1, m_contacts); // super-contact point
+                    if (m_rigidBodySystem->getFrictionSamplingType() != kNone)
+                    {
+                        collisionDetectBoxPlaneRandom(body0, body1, m_subContacts); // sub-contact points
+                    }
                 }
-                else if (m_rigidBodySystem->getSamplingType() == kSampling)
+                else if (m_rigidBodySystem->getNormalSamplingType() == kRandom)
                 {
-                    collisionDetectBoxPlane(body0, body1); // super-contact point
-                    collisionDetectBoxPlaneRandom(body0, body1); // sub-contact points
+                    collisionDetectBoxPlaneRandom(body0, body1, m_contacts); // super-contact points
                 }
             }
             // Test for plane-box collision (order swap)
             else if ( body0->geometry->getType() == kPlane &&
                       body1->geometry->getType() == kBox )
             {
-                if (m_rigidBodySystem->getSamplingType() == kCorners)
+                if (m_rigidBodySystem->getNormalSamplingType() == kCorners)
                 {
-                    collisionDetectBoxPlane(body1, body0);
+                    collisionDetectBoxPlane(body1, body0, m_contacts); // super-contact point
+                    if (m_rigidBodySystem->getFrictionSamplingType() != kNone)
+                    {
+                        collisionDetectBoxPlaneRandom(body1, body0, m_subContacts); // sub-contact points
+                    }
                 }
-                else if (m_rigidBodySystem->getSamplingType() == kGrid)
+                else if (m_rigidBodySystem->getNormalSamplingType() == kGrid)
                 {
-                    collisionDetectBoxPlaneGrid(body1, body0);
+                    collisionDetectBoxPlaneGrid(body1, body0, m_contacts); // super-contact point
+                    if (m_rigidBodySystem->getFrictionSamplingType() != kNone)
+                    {
+                        collisionDetectBoxPlaneRandom(body1, body0, m_subContacts); // sub-contact points
+                    }
                 }
-                else if (m_rigidBodySystem->getSamplingType() == kSampling)
+                else if (m_rigidBodySystem->getNormalSamplingType() == kRandom)
                 {
-                    collisionDetectBoxPlane(body1, body0); // super-contact point
-                    collisionDetectBoxPlaneRandom(body1, body0); // sub-contact points
+                    collisionDetectBoxPlaneRandom(body1, body0, m_contacts); // super-contact points
                 }
             }
             // Test for SDF-box collision
@@ -282,7 +296,7 @@ void CollisionDetect::collisionDetectSphereBox(RigidBody* body0, RigidBody* body
     }
 }
 
-void CollisionDetect::collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1)
+void CollisionDetect::collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1, std::vector<Contact*>& contacts)
 {
     Box* box = dynamic_cast<Box*>(body0->geometry.get());
     Plane* plane = dynamic_cast<Plane*>(body1->geometry.get());
@@ -306,12 +320,12 @@ void CollisionDetect::collisionDetectBoxPlane(RigidBody* body0, RigidBody* body1
         float phi;
         if  ( collisionDetectPointPlane(pbox, pplane, nplane, phi) )
         {
-            m_contacts.push_back( new Contact(body0, body1, pbox, nplane, phi) );
+            contacts.push_back( new Contact(body0, body1, pbox, nplane, phi) );
         }
     }
 }
 
-void CollisionDetect::collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* body1)
+void CollisionDetect::collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* body1, std::vector<Contact*>& contacts)
 {
     Box* box = dynamic_cast<Box*>(body0->geometry.get());
     Plane* plane = dynamic_cast<Plane*>(body1->geometry.get());
@@ -344,14 +358,14 @@ void CollisionDetect::collisionDetectBoxPlaneGrid(RigidBody* body0, RigidBody* b
                 float phi;
                 if (collisionDetectPointPlane(pbox, pplane, nplane, phi))
                 {
-                    m_contacts.push_back(new Contact(body0, body1, pbox, nplane, phi));
+                    contacts.push_back(new Contact(body0, body1, pbox, nplane, phi));
                 }
             }
         }
     }
 }
 
-void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody* body1)
+void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody* body1, std::vector<Contact*>& contacts)
 {
     Box* box = dynamic_cast<Box*>(body0->geometry.get());
     Plane* plane = dynamic_cast<Plane*>(body1->geometry.get());
@@ -424,7 +438,7 @@ void CollisionDetect::collisionDetectBoxPlaneRandom(RigidBody* body0, RigidBody*
 			float phi;
 			if (collisionDetectPointPlane(p, pplane, nplane, phi))
 			{
-				m_subContacts.push_back(new Contact(body0, body1, p, nplane, phi));
+				contacts.push_back(new Contact(body0, body1, p, nplane, phi));
 			}
         }
     }
